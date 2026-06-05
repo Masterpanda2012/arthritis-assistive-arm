@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistive Arm — Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/app.css?v=20260606" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>Assistive Arm</h1>
+        <p class="tagline">Gentle reach for everyday independence</p>
+      </div>
+    </div>
+    <div class="status-pills" role="status" aria-live="polite">
+      <span id="serial-pill" class="pill pill-muted">Serial —</span>
+      <span id="live-pill" class="pill pill-muted">Connecting…</span>
+      <span id="smart-pill" class="pill pill-muted">Session —</span>
+    </div>
+  </header>
+
+  <section class="hero-strip card">
+    <div class="hero-left">
+      <p class="hero-greeting" id="hero-greeting">Welcome back</p>
+      <p class="hero-sub" id="hero-sub">Your profile is loaded and ready.</p>
+    </div>
+    <div class="hero-chips" id="input-chips"></div>
+    <div class="diversity-track" id="diversity-track" aria-label="Movement coverage"></div>
+  </section>
+
+  <div id="alert-banner" class="alert-banner hidden" role="alert"></div>
+
+  <nav class="tab-nav" aria-label="Main sections" role="tablist">
+    <button type="button" class="tab active" id="tab-control" data-tab="control" role="tab" aria-controls="panel-control" aria-selected="true">Control</button>
+    <button type="button" class="tab" id="tab-gestures" data-tab="gestures" role="tab" aria-controls="panel-gestures" aria-selected="false">Gestures</button>
+    <button type="button" class="tab" id="tab-profile" data-tab="profile" role="tab" aria-controls="panel-profile" aria-selected="false">Profile</button>
+  </nav>
+
+  <div class="app-shell">
+    <main class="tab-panels">
+      <!-- CONTROL -->
+      <section id="panel-control" class="tab-panel active" role="tabpanel" aria-labelledby="tab-control">
+        <div class="card controls-card" id="controls-card">
+          <div class="card-head row-head">
+            <div>
+              <h2>Control deck</h2>
+              <p>Daily tasks and gentle motion — large buttons for stiff or trembling hands.</p>
+            </div>
+            <span id="manual-badge" class="badge badge-ok">Manual on</span>
+          </div>
+          <p id="pending-banner" class="pending hidden"></p>
+          <p id="diversity-hint" class="diversity-hint"></p>
+          <p class="section-label">Daily tasks</p>
+          <div class="adl-grid" id="adl-grid"></div>
+          <p id="task-context" class="task-context">Choose a daily task to see the target and confirmation plan.</p>
+          <p class="section-label">Fine motion</p>
+          <div class="motion-grid" id="motion-grid"></div>
+          <button type="button" class="btn btn-danger btn-wide" id="btn-estop">Emergency stop</button>
+          <div class="confirm-row">
+            <button type="button" class="btn btn-success" data-intent="confirm_yes">Yes</button>
+            <button type="button" class="btn btn-ghost" data-intent="confirm_no">No</button>
+            <button type="button" class="btn btn-ghost" data-intent="home">Home</button>
+          </div>
+        </div>
+
+        <div class="card radar-card" id="radar-card">
+          <div class="card-head row-head">
+            <div>
+              <h2>Workspace radar</h2>
+              <p>Visual map of detected objects. Click any item to command a reach.</p>
+            </div>
+            <span id="radar-status-badge" class="badge badge-ok">Scanning</span>
+          </div>
+          <div class="radar-container">
+            <canvas id="radar-canvas" width="500" height="280"></canvas>
+          </div>
+        </div>
+
+        <div class="card voice-card" id="voice-card">
+          <div class="card-head">
+            <h2>Say what you need</h2>
+            <p>Type or speak plain English — same brain as the microphone on the arm.</p>
+          </div>
+          <div class="voice-bar">
+            <input type="text" id="voice-text" placeholder="e.g. get my pills · bring the remote · stop" autocomplete="off" />
+            <button type="button" class="btn btn-icon" id="btn-voice-say" title="Speak command" aria-label="Speak command">Mic</button>
+            <button type="button" class="btn btn-primary" id="btn-send-say">Send</button>
+          </div>
+          <div class="command-chips" id="quick-commands" aria-label="Quick voice commands"></div>
+          <p id="voice-feedback" class="voice-feedback"></p>
+        </div>
+      </section>
+
+      <!-- GESTURES -->
+      <section id="panel-gestures" class="tab-panel" role="tabpanel" aria-labelledby="tab-gestures">
+        <div class="card studio-card" id="studio-card">
+          <div class="card-head row-head">
+            <div>
+              <h2>Gesture studio</h2>
+              <p>Describe → show → save to your personal catalogue.</p>
+            </div>
+            <span id="gesture-badge" class="badge badge-ok">Camera on</span>
+          </div>
+
+          <ol class="wizard-steps" id="wizard-steps">
+            <li class="step active" data-step="1">Describe</li>
+            <li class="step" data-step="2">Show</li>
+            <li class="step" data-step="3">Save</li>
+          </ol>
+
+          <div class="studio-step" id="step-describe">
+            <textarea id="gesture-describe" rows="3" placeholder="When I make a fist, close the claw"></textarea>
+            <div class="studio-actions">
+              <button type="button" class="btn btn-ghost" id="btn-voice-describe">Speak</button>
+              <button type="button" class="btn btn-primary" id="btn-interpret">Understand</button>
+            </div>
+          </div>
+
+          <div id="interpret-result" class="interpret-box hidden"></div>
+
+          <div class="studio-step hidden" id="step-capture">
+            <div class="camera-panel" id="camera-panel">
+              <img
+                id="camera-preview"
+                class="camera-preview hidden"
+                alt="Live webcam preview for gesture teaching"
+                width="960"
+                height="540"
+              />
+              <div id="camera-placeholder" class="camera-placeholder">
+                <p id="camera-hint">Starting camera…</p>
+                <p class="camera-help">Grant <strong>Camera</strong> to Terminal or Cursor in System Settings → Privacy &amp; Security.</p>
+              </div>
+            </div>
+            <p id="capture-status">Show your gesture to the webcam.</p>
+            <div class="capture-bar"><i id="capture-fill"></i></div>
+            <div class="studio-actions">
+              <button type="button" class="btn btn-primary" id="btn-capture-start">Start capture</button>
+              <button type="button" class="btn btn-ghost hidden" id="btn-capture-stop">Finish</button>
+              <button type="button" class="btn btn-success hidden" id="btn-save-gesture">Save to catalogue</button>
+            </div>
+          </div>
+
+          <div class="catalogue">
+            <h3>Your catalogue <span id="catalogue-count" class="count-badge">0</span></h3>
+            <ul id="custom-catalogue" class="catalogue-list"></ul>
+          </div>
+        </div>
+
+        <div class="card guide-card">
+          <div class="card-head">
+            <h2>Built-in gestures</h2>
+            <p class="quit-note">Hold <strong>peace sign</strong> 1.5s to quit · <strong>Thumbs up</strong> = yes</p>
+          </div>
+          <ul id="gesture-guide" class="guide-grid"></ul>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section id="panel-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-profile">
+        <form id="profile-form" class="card profile-card">
+          <div class="card-head">
+            <h2>Your profile</h2>
+            <p>Saved on this device — changes apply to the running arm immediately.</p>
+          </div>
+          <fieldset class="input-modes preset-modes">
+            <legend>Comfort presets</legend>
+            <div class="preset-grid" id="preset-grid"></div>
+          </fieldset>
+          <div class="profile-grid">
+            <label class="field">
+              <span>Display name</span>
+              <input type="text" id="display-name" placeholder="e.g. Grandpa" autocomplete="name" />
+            </label>
+            <label class="field">
+              <span>Motor profile</span>
+              <select id="motor-level">
+                <option value="early">Early — more speed &amp; gestures</option>
+                <option value="moderate">Moderate — balanced</option>
+                <option value="severe">Severe — slow &amp; simple</option>
+              </select>
+            </label>
+            <label class="field span-2">
+              <span>Default speed — <output id="speed-label">30%</output></span>
+              <input type="range" id="speed-pct" min="15" max="45" step="1" />
+            </label>
+          </div>
+
+          <fieldset class="input-modes">
+            <legend>How you control the arm</legend>
+            <div class="mode-cards">
+              <label class="mode-card" id="mode-voice">
+                <input type="checkbox" id="enable-voice" />
+                <span class="mode-icon">🎙</span>
+                <span class="mode-title">Voice</span>
+                <span class="mode-desc">Plain English commands</span>
+              </label>
+              <label class="mode-card" id="mode-gesture">
+                <input type="checkbox" id="enable-gesture" />
+                <span class="mode-icon">✋</span>
+                <span class="mode-title">Gestures</span>
+                <span class="mode-desc">Hand signs &amp; studio</span>
+              </label>
+              <label class="mode-card" id="mode-manual">
+                <input type="checkbox" id="enable-manual" />
+                <span class="mode-icon">🖐</span>
+                <span class="mode-title">Manual / web</span>
+                <span class="mode-desc">Buttons on this page</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="input-modes smart-toggles">
+            <legend>Smart assist</legend>
+            <label class="toggle"><input type="checkbox" id="fatigue-slowdown" /> Slow down after many moves</label>
+            <label class="toggle"><input type="checkbox" id="gentle-reach" /> Gentle reach confirmations</label>
+            <label class="toggle"><input type="checkbox" id="caregiver-mode" /> Caregiver mode</label>
+            <label class="field inline">
+              <span>Rest reminder every (min)</span>
+              <input type="number" id="rest-minutes" min="0" max="120" step="5" />
+            </label>
+          </fieldset>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save profile</button>
+            <span id="profile-dirty" class="dirty-hint hidden">Unsaved changes</span>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <aside class="live-rail">
+      <section class="card smart-card">
+        <h2>Live assist</h2>
+        <div id="smart-panel" class="smart-panel"></div>
+        <div id="comfort-summary" class="comfort-summary"></div>
+        <div id="input-health" class="input-health"></div>
+        <p id="fallback-tip" class="fallback-tip"></p>
+      </section>
+      <section class="card arm-card">
+        <h2>Arm state</h2>
+        <div class="arm-meters">
+          <div class="meter"><span>Base</span><div class="bar"><i id="m-base"></i></div><em id="v-base">—</em></div>
+          <div class="meter"><span>Lift</span><div class="bar"><i id="m-lift"></i></div><em id="v-lift">—</em></div>
+          <div class="meter"><span>Rotate</span><div class="bar"><i id="m-rotate"></i></div><em id="v-rotate">—</em></div>
+          <div class="meter"><span>Claw</span><div class="bar"><i id="m-claw"></i></div><em id="v-claw">—</em></div>
+        </div>
+        <p class="range-line">Range <strong id="v-range">—</strong> mm</p>
+      </section>
+      <section class="card activity-card">
+        <h2>Activity</h2>
+        <ul id="activity-feed" class="activity-feed"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+  <footer class="footer">
+    <p>Research prototype — not a medical device · Hold <strong>peace sign</strong> to quit · Say <strong>stop</strong> anytime</p>
+  </footer>
+  <script src="/static/js/app.js?v=20260606" type="module"></script>
+</body>
+</html>

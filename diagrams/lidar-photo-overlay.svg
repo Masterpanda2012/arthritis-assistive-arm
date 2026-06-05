@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="772" height="845" viewBox="0 0 772 845" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L14 7L0 14V0Z" fill="#222222"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L14 7L0 14V0Z" fill="#3BB273"/>
+    </marker>
+  </defs>
+
+  <rect x="1.5" y="1.5" width="769" height="842" rx="18" stroke="#D8CDBE" stroke-dasharray="10 10"/>
+
+  <rect x="435" y="110" width="120" height="52" rx="12" fill="#3BB273" fill-opacity="0.18" stroke="#3BB273" stroke-width="4"/>
+  <text x="418" y="98" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="24" font-weight="700">Best mount zone</text>
+
+  <path d="M560 136C612 138 646 132 704 110" stroke="#3BB273" stroke-width="4" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="554" y="76" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="22" font-weight="700">Top-front of wrist box</text>
+  <text x="554" y="103" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="16">Center the LiDAR over the claw path.</text>
+
+  <path d="M494 162L360 308" stroke="#56CCF2" stroke-width="8" stroke-linecap="round"/>
+  <path d="M475 183L337 335L388 350L475 183Z" fill="#56CCF2" fill-opacity="0.18"/>
+  <text x="286" y="372" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="22" font-weight="700">Aim beam here</text>
+  <text x="248" y="399" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="16">Between the fingers or 1-3 cm ahead.</text>
+
+  <path d="M618 208C652 220 680 236 720 270" stroke="#222222" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="554" y="206" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="21" font-weight="700">Tilt 10-15 deg down</text>
+  <text x="554" y="230" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="16">Enough to see tabletop objects.</text>
+
+  <circle cx="523" cy="136" r="11" fill="#3BB273"/>
+  <circle cx="523" cy="136" r="28" stroke="#3BB273" stroke-opacity="0.35" stroke-width="8"/>
+
+  <circle cx="594" cy="690" r="38" fill="#D64545" fill-opacity="0.10" stroke="#D64545" stroke-width="5"/>
+  <path d="M573 668L615 710" stroke="#D64545" stroke-width="7" stroke-linecap="round"/>
+  <path d="M615 668L573 710" stroke="#D64545" stroke-width="7" stroke-linecap="round"/>
+  <path d="M618 660C668 644 701 628 730 588" stroke="#D64545" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="538" y="578" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="20" font-weight="700">Avoid base mounting</text>
+  <text x="538" y="602" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="15">The arm can block the beam.</text>
+
+  <circle cx="170" cy="512" r="34" fill="#D64545" fill-opacity="0.10" stroke="#D64545" stroke-width="5"/>
+  <path d="M149 491L191 533" stroke="#D64545" stroke-width="7" stroke-linecap="round"/>
+  <path d="M191 491L149 533" stroke="#D64545" stroke-width="7" stroke-linecap="round"/>
+  <path d="M196 483C240 430 268 392 318 330" stroke="#D64545" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="48" y="560" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="20" font-weight="700">Avoid finger mounting</text>
+  <text x="48" y="584" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="15">Moving wires and drift.</text>
+
+  <rect x="36" y="42" width="286" height="88" rx="16" fill="#FCFAF6" stroke="#D8CDBE"/>
+  <text x="58" y="76" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="22" font-weight="700">Photo overlay guide</text>
+  <text x="58" y="103" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="16">Import this SVG over your photo in Figma.</text>
+  <text x="58" y="123" fill="#5A5249" font-family="Avenir, Arial, sans-serif" font-size="16">Scale until the wrist box matches.</text>
+</svg>

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "intrinsics": {
+    "focal_length_px": 589.0,
+    "cx": 320.0,
+    "cy": 240.0
+  },
+  "base_center_deg": 120,
+  "base_deg_per_mm_x": 0.085,
+  "lift_center_deg": 120,
+  "lift_deg_per_mm_z": 0.055,
+  "rotate_center_deg": 92,
+  "rotate_deg_per_pixel_y": 30.0,
+  "depth_scale": 1.0,
+  "min_depth_mm": 120.0,
+  "max_depth_mm": 800.0
+}

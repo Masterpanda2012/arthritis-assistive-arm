@@ -1,0 +1,307 @@
+
+
+
+Adaptive Robot Arm
+Project Framework, Technical Design & Hardware Buying Guide
+Updated for ELEGOO Mega Starter Kit — Version 3.0  |  March 2026
+
+Voice control · YOLO + LiDAR vision · Stepper motor lift · Free AI/LLM layer
+
+
+What you actually need to buy: as little as $22 USD  /  ~$30 CAD
+1. What You Already Own (ELEGOO Mega Kit)
+Your ELEGOO Mega Starter Kit covers nearly every component in the original shopping list. The table below shows everything from the plan that you already have, and notes any caveats.
+
+Component in kit
+Plan item
+Saves
+Notes
+Arduino Mega (better than UNO)
+Arduino UNO
+~$25
+Mega has 4 hardware UARTs, 54 I/O pins, more RAM — a direct upgrade. No code changes needed.
+28BYJ-48 Stepper Motor + ULN2003 driver board
+NEMA 17 + A4988
+~$21
+Lower torque than NEMA 17, but sufficient for a lightweight arm. Uses different library (Stepper.h or AccelStepper in unipolar mode). 5V — no external PSU needed.
+100µF Electrolytic Capacitors (2×)
+Decoupling cap
+~$4
+Exact component needed. Already in your bag of parts.
+Ultrasonic Sensor (HC-SR04)
+(LiDAR depth, partial)
+—
+Can do basic distance detection (2cm–4m, ±3mm). Not accurate enough for pick-and-place, but useful to confirm an object is in reach before moving.
+Sound Sensor Module
+Mic (partial)
+—
+NOT usable for voice recognition. Detects sound volume only (digital HIGH/LOW). Use your computer's built-in mic instead — see Section 2.
+830-point breadboard + 65× jumper wires
+Wiring
+~$8
+All wiring needs are covered for every phase.
+9V 1A Adapter
+Power supply
+~$10
+Works for the 28BYJ-48 stepper via ULN2003. You no longer need the 12V supply (only needed for NEMA 17).
+L293D H-bridge motor driver
+Bonus
+—
+Extra motor control IC you might use for future DC motor projects.
+GY-521 (MPU-6050) gyro/accel
+Bonus
+—
+Could be mounted on the arm for orientation/tilt sensing.
+Resistors, LEDs, buttons, transistors...
+Misc
+~$10
+All passive components and indicators included.
+TOTAL SAVED
+
+~$78
+vs. the original v2 shopping list
+
+2. Microphone — Use Your Computer's Built-in Mic
+Yes — your computer's built-in microphone works perfectly for this project. Vosk and sounddevice access any system audio device by index. You're sitting close to a fixed robot arm, so noise rejection matters less than for a streaming setup.
+
+Why it works
+	•	Vosk is trained on noisy real-world speech — it handles fan noise and room echo well at short range.
+	•	sounddevice defaults to the system's default input device. No configuration needed.
+	•	The Sound Sensor Module in your kit is NOT usable for this — it only outputs a HIGH/LOW signal when sound exceeds a threshold, not actual audio waveforms.
+
+One-line code to list your mic devices
+import sounddevice as sd
+print(sd.query_devices())  # find your mic's device index
+# Then in voice.py: sd.InputStream(device=INDEX, ...)
+
+If voice recognition is unreliable with the built-in mic, the FIFINE K669B is still the recommended upgrade at ~$25 on Amazon — but try the built-in first.
+
+3. Stepper Motor — 28BYJ-48 vs NEMA 17
+Your ELEGOO kit includes the 28BYJ-48 with ULN2003 driver. Here's how it compares to the originally recommended NEMA 17:
+
+
+28BYJ-48 (you have this)
+NEMA 17 (original plan)
+Cost
+$0 — already in kit
+~$13 + $8 driver = $21
+Torque
+~3.4 kg-cm (with gearbox)
+~4.2 kg-cm
+Power
+5V from Arduino
+12V external supply needed
+Driver
+ULN2003 (included)
+A4988 (separate purchase)
+Arduino library
+Stepper.h (built-in) or AccelStepper
+AccelStepper
+Verdict
+Use this first. Sufficient for most small arms.
+Upgrade only if you need more torque.
+
+The 28BYJ-48's built-in 1:64 gearbox gives it deceptively good holding torque for its size. If the arm is lightweight (3D printed or acrylic), start here. Only upgrade to NEMA 17 if the motor struggles or stalls under load.
+
+4. What You Actually Need to Buy
+Based on your ELEGOO kit and using your computer's built-in microphone, here is the updated shopping list. The AI layer is completely free (Section 5).
+
+Phase 1 — Voice Control
+USD
+CAD ~
+Notes
+Computer built-in microphone
+$0
+$0
+Use system mic with sounddevice. Fully functional with Vosk.
+Optional upgrade: FIFINE K669B USB Mic
+~$25
+~$35
+Only if built-in mic gives poor recognition. Try built-in first.
+
+Phase 2 — Stepper Motor Lift
+USD
+CAD ~
+Notes
+28BYJ-48 stepper + ULN2003 driver
+$0
+$0
+Already in your kit. ULN2003 board uses IN1–IN4 pins on Mega.
+100µF capacitor
+$0
+$0
+Already in your kit (2× included). Needed for decoupling.
+Jumper wires + breadboard
+$0
+$0
+Already in your kit.
+Optional torque upgrade: STEPPERONLINE NEMA 17 (17HS19-2004S1) + A4988 driver
+~$21
+~$29
+Only if 28BYJ-48 stalls under your arm's load.
+
+Phase 3 — LiDAR (must buy)
+USD
+CAD ~
+Notes
+Budget pick: MakerFocus TF-Luna Single-Point LiDAR (0.2–8m, UART/I2C)
+~$22
+~$30
+Best value. 1cm resolution, I2C/UART, direct Arduino Mega connection. Sufficient for desktop pick-and-place.
+Cheaper clone: Wishiot TF-Luna with Dupont cables included
+~$20
+~$28
+Same sensor, includes pre-wired Dupont cables for Mega. Saves soldering.
+Free alternative for Phase 3 prototype: HC-SR04 ultrasonic sensor (in your kit)
+$0
+$0
+12% accuracy at 1m vs LiDAR's 1%. Use to prototype the pick-and-place logic first, then swap to TF-Luna.
+Full mapping option: Slamtec RPLIDAR A1M8 360° LiDAR
+~$99
+~$137
+Only needed if you want full 360° environment mapping. Overkill for most arm use cases.
+
+Phase 4 — AI / LLM Layer
+USD
+CAD ~
+Notes
+Groq free tier — Llama 3.3 70B (recommended)
+$0
+$0
+1,000 req/day free. No credit card. Best quality. Sign up at console.groq.com.
+Ollama — fully local (privacy-first)
+$0
+$0
+No internet, no limits, no account. Run: ollama pull llama3.2:3b
+Google AI Studio — Gemini 2.5 Flash (multimodal)
+$0
+$0
+1,500 req/day free. Can accept camera frames directly for vision tasks.
+
+
+Scenario
+USD
+CAD ~
+Minimum — built-in mic + kit stepper + TF-Luna (Wishiot) + free AI
+~$20
+~$28
+Recommended — built-in mic + kit stepper + TF-Luna (MakerFocus) + free AI
+~$22
+~$30
+With NEMA 17 upgrade (if 28BYJ-48 not strong enough)
+~$43
+~$59
+With full RPLIDAR A1M8 360° LiDAR instead of TF-Luna
+~$99
+~$137
+Original v2 estimate (before kit savings)
+~$163
+~$225
+
+5. Free AI Options — $0, Similar Quality
+For a robot arm that makes ~10–20 AI calls per session, any of these three options is effectively identical in practice to a paid subscription. The gap between free and paid has closed dramatically in 2026.
+
+Option
+Cost
+Quality
+Speed
+Best for
+Groq free
+$0
+★★★★★
+Very fast
+Most users — easiest setup, 1K req/day, no card
+Google AI Studio
+$0
+★★★★★
+Fast
+Multimodal — can process camera images directly
+Ollama local
+$0
+★★★★☆
+Moderate
+Full privacy — no internet, no limits, always works offline
+
+Integration code — swap between all three with one variable
+# config.py — change this one line to switch providers
+LLM_PROVIDER = "groq"  # or "google" or "ollama"
+
+# ai/llm_agent.py
+from openai import OpenAI
+
+CONFIGS = {
+    "groq":   {"api_key": "gsk_YOUR_KEY",  "base_url": "https://api.groq.com/openai/v1",  "model": "llama-3.3-70b-versatile"},
+    "google": {"api_key": "AI_YOUR_KEY",   "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/", "model": "gemini-2.5-flash"},
+    "ollama": {"api_key": "ollama",         "base_url": "http://localhost:11434/v1",        "model": "llama3.2:3b"},
+}
+
+cfg = CONFIGS[LLM_PROVIDER]
+client = OpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
+
+def ask_llm(prompt):
+    resp = client.chat.completions.create(model=cfg["model"], messages=[{"role":"user","content":prompt}])
+    return resp.choices[0].message.content
+
+6. Updated System Architecture
+One significant bonus: your Arduino Mega replaces the UNO. This matters because the Mega has four independent hardware UART ports — you can connect the TF-Luna LiDAR on Serial1, the Python host on Serial0 (USB), and reserve Serial2/3 for future sensors, all simultaneously with no conflicts.
+
+Layer
+Component
+Input
+Voice: computer built-in mic → Vosk STT → asyncio queue. Gesture: webcam → MediaPipe (existing). Vision: webcam YOLO + TF-Luna LiDAR on Mega Serial1.
+Orchestrator
+Python asyncio event loop on host computer. Routes events to processing modules.
+AI / LLM
+Groq free tier (Llama 3.3 70B) or Ollama local — configured via single variable in config.py.
+Motion
+IK solver (ikpy) + trajectory smoother → serial packet → Mega Serial0 (USB).
+Hardware
+Arduino Mega: ULN2003 (lift stepper on D8–D11), SG90 servos (D3, D6, D9), TF-Luna (Serial1 at 115200). Feedback over Serial0.
+
+
+7. Arduino Mega Pin Assignment
+Mega Pin
+Component
+Notes
+D3 (PWM)
+Servo base
+Same as original sketch. Servo library on Mega uses timer-safe pins.
+D6 (PWM)
+Servo rotate
+Same as original sketch.
+D9 (PWM)
+Servo claw
+Same as original sketch.
+D8, D10, D11, D12
+ULN2003 IN1–IN4
+Lift stepper. Connect to IN1, IN2, IN3, IN4 on ULN2003 board.
+Serial1 RX (D19)
+TF-Luna TX
+LiDAR data in. Connect TF-Luna TX → Mega D19. Default 115200 baud.
+Serial1 TX (D18)
+TF-Luna RX
+LiDAR config out. Connect TF-Luna RX → Mega D18.
+Serial0 (USB)
+Host Python
+Main command interface. Same as original — no change.
+A0, A1
+Limit switches
+Top and bottom end-stops for lift. INPUT_PULLUP.
+5V / GND
+TF-Luna VCC
+TF-Luna runs at 5V, 70mA — within Mega's 5V rail capacity.
+
+8. Summary
+Your ELEGOO Mega Starter Kit has eliminated most of the hardware cost. You already own the controller (Arduino Mega, which is better than what was originally planned), the stepper motor and driver, all capacitors, all wiring, and the breadboard. The AI layer is $0 using Groq or Ollama.
+
+The only thing you need to purchase is a LiDAR sensor for Phase 3 vision. The TF-Luna at ~$22 USD is the recommended pick. Before even buying that, you can prototype the pick-and-place logic using the HC-SR04 ultrasonic sensor already in your kit.
+
+Your next purchase
+USD
+CAD ~
+MakerFocus TF-Luna LiDAR (single-point, 0.2–8m, UART/I2C) — after you have Phases 1 & 2 working
+~$22
+~$30
+
+
+Document v3.0 — March 2026 | Updated for ELEGOO Mega Starter Kit | All links verified at time of writing.

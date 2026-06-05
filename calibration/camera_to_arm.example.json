@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "notes": "Copy to calibration/camera_to_arm.json after measuring your arm geometry and camera alignment.",
+  "base_center_offset_deg": 0,
+  "lift_center_offset_deg": 0,
+  "rotate_center_offset_deg": 0,
+  "range_reference_mm": 300,
+  "image_center_reference": {
+    "x": 0.5,
+    "y": 0.5
+  }
+}

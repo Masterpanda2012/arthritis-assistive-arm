@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1920" height="1160" viewBox="0 0 1920 1160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="1160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F4EF"/>
+      <stop offset="1" stop-color="#EDE5D8"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="120" y1="120" x2="1800" y2="1040" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF9"/>
+      <stop offset="1" stop-color="#F6EFE4"/>
+    </linearGradient>
+    <linearGradient id="armTop" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#3D4044"/>
+      <stop offset="1" stop-color="#1F2328"/>
+    </linearGradient>
+    <linearGradient id="armSide" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#262A2F"/>
+      <stop offset="1" stop-color="#121519"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#56CCF2" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#56CCF2" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="lidarTop" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#6AE2A2"/>
+      <stop offset="1" stop-color="#3BB273"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L14 7L0 14V0Z" fill="#222222"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L14 7L0 14V0Z" fill="#3BB273"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1160" fill="url(#bg)"/>
+  <rect x="70" y="70" width="1780" height="1020" rx="34" fill="url(#panel)" stroke="#D8CDBE"/>
+
+  <text x="130" y="148" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="40" font-weight="700">Robot Arm LiDAR Placement</text>
+  <text x="130" y="188" fill="#534B42" font-family="Avenir, Arial, sans-serif" font-size="22">Best for TF-Luna style single-point LiDAR: mount on the wrist housing, centered over the claw path, aimed 10-15 deg down.</text>
+
+  <rect x="110" y="230" width="1010" height="780" rx="28" fill="#FCFAF6" stroke="#E0D7CA"/>
+  <text x="150" y="280" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="26" font-weight="700">1. Best placement: 3D overview</text>
+  <text x="150" y="314" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Mount on the top-front of the wrist box so the beam measures nearly from the same point the claw acts on.</text>
+
+  <g filter="url(#shadow)">
+    <polygon points="340,860 520,760 690,845 515,945" fill="#181B1F"/>
+    <polygon points="520,760 690,845 690,900 520,820" fill="#121519"/>
+    <polygon points="340,860 520,760 520,820 340,915" fill="#22262B"/>
+
+    <polygon points="590,705 760,605 870,675 705,775" fill="url(#armTop)"/>
+    <polygon points="760,605 870,675 870,750 760,680" fill="url(#armSide)"/>
+    <polygon points="590,705 760,605 760,680 590,780" fill="#2A2E34"/>
+
+    <polygon points="650,560 855,445 1030,530 830,650" fill="url(#armTop)"/>
+    <polygon points="855,445 1030,530 1030,720 855,635" fill="url(#armSide)"/>
+    <polygon points="650,560 855,445 855,635 650,750" fill="#30343A"/>
+
+    <polygon points="815,470 965,390 1055,438 908,518" fill="#2F3438"/>
+    <polygon points="965,390 1055,438 1055,505 965,458" fill="#171B20"/>
+    <polygon points="815,470 965,390 965,458 815,540" fill="#252B30"/>
+
+    <polygon points="865,390 985,322 1076,368 956,436" fill="url(#lidarTop)"/>
+    <polygon points="985,322 1076,368 1076,418 985,372" fill="#207B52"/>
+    <polygon points="865,390 985,322 985,372 865,440" fill="#2B9B66"/>
+
+    <polygon points="892,438 948,468 560,678 500,646" fill="url(#beam)"/>
+    <polygon points="948,468 1010,496 610,725 560,678" fill="url(#beam)"/>
+
+    <line x1="505" y1="645" x2="418" y2="603" stroke="#23262A" stroke-width="18" stroke-linecap="round"/>
+    <line x1="506" y1="646" x2="438" y2="725" stroke="#23262A" stroke-width="18" stroke-linecap="round"/>
+    <line x1="418" y1="603" x2="305" y2="550" stroke="#23262A" stroke-width="14" stroke-linecap="round"/>
+    <line x1="438" y1="725" x2="310" y2="784" stroke="#23262A" stroke-width="14" stroke-linecap="round"/>
+    <line x1="304" y1="552" x2="240" y2="520" stroke="#23262A" stroke-width="12" stroke-linecap="round"/>
+    <line x1="309" y1="784" x2="240" y2="816" stroke="#23262A" stroke-width="12" stroke-linecap="round"/>
+
+    <circle cx="503" cy="646" r="16" fill="#BFC5CD"/>
+    <circle cx="418" cy="603" r="14" fill="#BFC5CD"/>
+    <circle cx="438" cy="725" r="14" fill="#BFC5CD"/>
+    <circle cx="305" cy="550" r="12" fill="#BFC5CD"/>
+    <circle cx="310" cy="784" r="12" fill="#BFC5CD"/>
+  </g>
+
+  <circle cx="587" cy="692" r="18" fill="#3BB273"/>
+  <circle cx="587" cy="692" r="30" stroke="#3BB273" stroke-opacity="0.35" stroke-width="10"/>
+  <text x="640" y="645" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="24" font-weight="700">Pickup zone</text>
+  <text x="640" y="678" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Beam should land between the open fingers</text>
+  <text x="640" y="706" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">or about 1-3 cm ahead of the claw center.</text>
+
+  <path d="M1150 390C1260 390 1280 390 1330 360" stroke="#3BB273" stroke-width="4" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="1168" y="352" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="24" font-weight="700">Mount LiDAR here</text>
+  <text x="1168" y="382" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Top-front of the wrist housing</text>
+  <text x="1168" y="408" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Centered with the claw path</text>
+
+  <path d="M1160 530C1230 520 1265 505 1305 488" stroke="#222222" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="1168" y="480" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="24" font-weight="700">Tilt 10-15 deg down</text>
+  <text x="1168" y="510" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Enough to see tabletop targets</text>
+  <text x="1168" y="536" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">without hitting the linkage in front.</text>
+
+  <path d="M1125 675C1205 708 1270 742 1340 788" stroke="#222222" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="1168" y="772" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="24" font-weight="700">Why this location works</text>
+  <text x="1168" y="804" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Closest measurement to the grasp point</text>
+  <text x="1168" y="832" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Less arm self-occlusion</text>
+  <text x="1168" y="860" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Simpler calibration than base mounting</text>
+
+  <rect x="1150" y="230" width="660" height="360" rx="28" fill="#FCFAF6" stroke="#E0D7CA"/>
+  <text x="1190" y="280" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="26" font-weight="700">2. Beam alignment detail</text>
+  <text x="1190" y="314" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">The beam should follow the claw centerline, not one finger.</text>
+
+  <g transform="translate(1200 340)">
+    <ellipse cx="175" cy="92" rx="148" ry="76" fill="#E8F5F9"/>
+    <path d="M110 70L65 146" stroke="#23262A" stroke-width="20" stroke-linecap="round"/>
+    <path d="M240 70L285 146" stroke="#23262A" stroke-width="20" stroke-linecap="round"/>
+    <circle cx="174" cy="92" r="11" fill="#3BB273"/>
+    <circle cx="174" cy="92" r="32" stroke="#3BB273" stroke-opacity="0.24" stroke-width="10"/>
+    <line x1="174" y1="-6" x2="174" y2="92" stroke="#56CCF2" stroke-width="8" stroke-linecap="round"/>
+    <path d="M142 20L174 -18L206 20" stroke="#56CCF2" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="174" y1="12" x2="174" y2="176" stroke="#B9B0A5" stroke-width="2" stroke-dasharray="8 8"/>
+    <text x="30" y="210" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="20" font-weight="700">Aim here</text>
+    <text x="30" y="238" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="17">Hit the center of the grasp channel</text>
+    <text x="30" y="264" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="17">or slightly in front of the fingers.</text>
+  </g>
+
+  <rect x="1150" y="640" width="660" height="370" rx="28" fill="#FCFAF6" stroke="#E0D7CA"/>
+  <text x="1190" y="690" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="26" font-weight="700">3. Avoid these mounting spots</text>
+  <text x="1190" y="724" fill="#5B544B" font-family="Avenir, Arial, sans-serif" font-size="18">Each bad option adds cable trouble, self-occlusion, or distance error.</text>
+
+  <g transform="translate(1200 760)">
+    <rect x="0" y="0" width="172" height="190" rx="20" fill="#FFF7F5" stroke="#F2D0CB"/>
+    <polygon points="36,136 86,108 128,130 82,158" fill="#1A1E22"/>
+    <rect x="16" y="90" width="52" height="28" rx="8" fill="#D64545"/>
+    <path d="M26 102L58 70" stroke="#D64545" stroke-width="8" stroke-linecap="round"/>
+    <path d="M58 102L26 70" stroke="#D64545" stroke-width="8" stroke-linecap="round"/>
+    <text x="16" y="36" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="18" font-weight="700">Base mount</text>
+    <text x="16" y="60" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="15">Arm blocks the beam</text>
+    <text x="16" y="78" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="15">before the claw arrives.</text>
+  </g>
+
+  <g transform="translate(1404 760)">
+    <rect x="0" y="0" width="172" height="190" rx="20" fill="#FFF7F5" stroke="#F2D0CB"/>
+    <rect x="72" y="48" width="76" height="40" rx="8" fill="#1F2328"/>
+    <rect x="116" y="36" width="34" height="18" rx="6" fill="#D64545"/>
+    <path d="M110 128L146 92" stroke="#D64545" stroke-width="8" stroke-linecap="round"/>
+    <path d="M146 128L110 92" stroke="#D64545" stroke-width="8" stroke-linecap="round"/>
+    <text x="16" y="36" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="18" font-weight="700">Side mount</text>
+    <text x="16" y="60" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="15">Distance is offset from</text>
+    <text x="16" y="78" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="15">the real grab center.</text>
+  </g>
+
+  <g transform="translate(1608 760)">
+    <rect x="0" y="0" width="172" height="190" rx="20" fill="#FFF7F5" stroke="#F2D0CB"/>
+    <path d="M80 64L48 126" stroke="#1F2328" stroke-width="16" stroke-linecap="round"/>
+    <path d="M96 64L128 126" stroke="#1F2328" stroke-width="16" stroke-linecap="round"/>
+    <rect x="116" y="112" width="34" height="18" rx="6" fill="#D64545"/>
+    <path d="M110 152L146 116" stroke="#D64545" stroke-width="8" stroke-linecap="round"/>
+    <path d="M146 152L110 116" stroke="#D64545" stroke-width="8" stroke-linecap="round"/>
+    <text x="16" y="36" fill="#1A1E22" font-family="Avenir, Arial, sans-serif" font-size="18" font-weight="700">Finger mount</text>
+    <text x="16" y="60" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="15">Fragile wiring and moving</text>
+    <text x="16" y="78" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="15">sensor calibration drift.</text>
+  </g>
+
+  <text x="130" y="1060" fill="#62584F" font-family="Avenir, Arial, sans-serif" font-size="18">Import this SVG into Figma as a base board, then place your real robot photo or dimensions beside it for mounting notes.</text>
+</svg>

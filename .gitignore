@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.db
+*.pt
+models/*.task
+models/vosk-model*/
+logs/
+.DS_Store
+depth_perception_research/
+*.jsonl

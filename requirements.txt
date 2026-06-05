@@ -1,0 +1,16 @@
+mediapipe
+numpy
+openai
+python-dotenv
+opencv-python
+pyserial
+sounddevice
+ultralytics
+vosk
+ikpy
+torch
+transformers
+pillow
+accelerate
+fastapi
+uvicorn[standard]
