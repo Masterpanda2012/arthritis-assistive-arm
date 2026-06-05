@@ -84,6 +84,14 @@ _GESTURE_ALIASES: dict[str, str] = {
     "spread fingers": "spread",
     "spider": "spider",
     "three spread": "spider",
+    "ok circle": "ok_circle",
+    "ok": "ok_circle",
+    "circle": "ok_circle",
+    "got it": "ok_circle",
+    "palm down": "palm_down",
+    "flat palm": "palm_down",
+    "rest hand": "palm_down",
+    "calm down": "palm_down",
 }
 
 
@@ -107,6 +115,9 @@ _DEFAULT_BINDINGS: dict[str, tuple[str, dict]] = {
     "high_five": ("preset_pose", {"name": "inspect"}),
     "spread": ("open_claw", {}),
     "spider": ("rotate_right", {}),
+    # Arthritis-friendly alternates — less thumb strain than thumbs-up / peace.
+    "ok_circle": ("confirm_yes", {}),
+    "palm_down": ("home", {}),
 }
 
 

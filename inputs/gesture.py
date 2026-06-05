@@ -469,6 +469,8 @@ def _action_for_label(
         "high_five": ("preset_pose", {"name": "inspect"}),
         "spread": ("open_claw", {}),
         "spider": ("rotate_right", {}),
+        "ok_circle": ("confirm_yes", {}),
+        "palm_down": ("home", {}),
     }
     hit = fallback.get(label)
     if hit is None:
@@ -488,10 +490,14 @@ def _gesture_label_baseline(landmarks) -> str | None:
     if _is_one_gesture(landmarks):
         return "one"
 
+    if _is_ok_circle(landmarks, states):
+        return "ok_circle"
     if _is_thumbs_up_strict(landmarks):
         return "thumbs_up"
     if _is_thumbs_down(landmarks, states):
         return "thumbs_down"
+    if _is_palm_down(landmarks, states, thumb_out):
+        return "palm_down"
     if _is_spider(landmarks, states):
         return "spider"
     if _is_high_five(landmarks, states, thumb_out):
@@ -760,6 +766,38 @@ def _angle_between_deg(v1: tuple[float, float], v2: tuple[float, float]) -> floa
 # visually distinct, and well inside the noise floor of MediaPipe's
 # landmark jitter at typical webcam distances.
 _PINCH_DIST_SCALE = 0.45
+
+
+def _is_ok_circle(landmarks, states: tuple[bool, bool, bool, bool]) -> bool:
+    """OK sign — thumb and index form a ring; other fingers folded.
+
+    Easier than a strict thumbs-up for stiff hands; distinct from pinch
+    because the index stays extended and the gap is wider.
+    """
+    if states[1] or states[2] or states[3]:
+        return False
+    if not states[0]:
+        return False
+    if _thumb_over_palm(landmarks):
+        return False
+    scale = _hand_scale(landmarks)
+    gap = _dist(landmarks[4], landmarks[8])
+    if gap < 0.22 * scale or gap > 0.62 * scale:
+        return False
+    return _finger_extended(landmarks, 8, 6, 5, scale)
+
+
+def _is_palm_down(landmarks, states: tuple[bool, bool, bool, bool], thumb_out: bool) -> bool:
+    """Flat palm facing downward — maps to a calm 'rest / home' pose."""
+    if not all(states) or not thumb_out:
+        return False
+    scale = _hand_scale(landmarks)
+    # Fingertips below the wrist in image space → palm facing down.
+    tips_below = sum(
+        1 for tip in _FINGER_TIPS
+        if landmarks[tip].y > landmarks[0].y + 0.06 * scale
+    )
+    return tips_below >= 3 and landmarks[9].y > landmarks[0].y + 0.04 * scale
 
 
 def _is_pinch(landmarks, states) -> bool:

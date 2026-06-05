@@ -49,6 +49,7 @@ const QUICK_COMMANDS = [
   "bring the remote",
   "open the claw",
   "go home",
+  "gentle open",
   "stop",
 ];
 
@@ -810,6 +811,21 @@ function stopCameraPreview() {
   state.cameraStreamOn = false;
 }
 
+function updateDepthStatus(pipeline) {
+  const badge = $("depth-status-badge");
+  if (!badge || !pipeline) return;
+  if (!pipeline.active) {
+    badge.textContent = "Depth off";
+    badge.className = "badge badge-off";
+    return;
+  }
+  const mm = pipeline.last_median_mm;
+  const ready = pipeline.depth_ready;
+  badge.textContent = ready && mm ? `Depth ~${mm}mm` : (pipeline.summary || "Depth on");
+  badge.className = ready ? "badge badge-ok" : "badge badge-off";
+  badge.title = pipeline.summary || "Monocular depth + LiDAR fusion";
+}
+
 function updateCameraStatus(camera) {
   if (!camera) return;
   state.cameraActive = !!camera.active;
@@ -1056,6 +1072,7 @@ function applyLivePayload(msg) {
   updateSmart(msg.smart, msg.input_fallback);
   updateCapture(msg.gesture_capture);
   updateCameraStatus(msg.camera);
+  updateDepthStatus(msg.vision_pipeline);
 
   if (msg.profile_summary && state.profile) {
     applyInputModes({ ...state.profile, ...msg.profile_summary });

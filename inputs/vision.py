@@ -3,13 +3,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from pathlib import Path
 from typing import Any, Callable
 
 from config import RuntimeConfig
-from inputs.depth import DepthEstimator
+from inputs.depth import DepthEstimator, fuse_depth_with_lidar
 from models import ActionRequest, ArmState, VisionTarget
 from motion.calibration import (
+    ArmCalibration,
     bbox_center_depth_mm,
     load_calibration,
     pixel_depth_to_camera_mm,
@@ -23,6 +23,19 @@ except ImportError:  # pragma: no cover
 
 LOGGER = logging.getLogger(__name__)
 
+# Shared status for telemetry / web console (updated by vision_loop).
+_pipeline_status: dict[str, Any] = {
+    "yolo_stride": 2,
+    "frames": 0,
+    "detections": 0,
+    "last_labels": {},
+    "depth": {"enabled": False, "ready": False, "summary": "depth: —"},
+}
+
+
+def vision_pipeline_status() -> dict[str, Any]:
+    return dict(_pipeline_status)
+
 
 async def vision_loop(
     config: RuntimeConfig,
@@ -30,6 +43,8 @@ async def vision_loop(
     stop_event: asyncio.Event,
     state_provider: Callable[[], tuple[ArmState, float]],
     frame_queue: asyncio.Queue[Any],
+    *,
+    environment_cb: Callable[[VisionTarget, ArmState, ArmCalibration | None], None] | None = None,
 ) -> None:
     if YOLO is None:
         LOGGER.warning("Vision input disabled because ultralytics is not installed.")
@@ -56,70 +71,101 @@ async def vision_loop(
         except OSError as exc:
             LOGGER.warning("Could not write default calibration: %s", exc)
 
+    yolo_stride = max(1, int(getattr(config, "vision_frame_stride", 2)))
+    depth_stride = max(2, int(getattr(config, "vision_depth_stride", 3)))
+    imgsz = int(getattr(config, "vision_imgsz", 480))
+
     last_emit = 0.0
     last_summary_log = 0.0
-    depth_stride = 0
+    depth_counter = 0
     last_depth_map = None
-    smoothed_coords = {}  # maps label to (timestamp, (x, y, z))
+    smoothed_coords: dict[str, tuple[float, tuple[float, float, float]]] = {}
     confirm_label: str | None = None
     confirm_streak = 0
+    frame_idx = 0
+    cached_results = None
+
+    _pipeline_status["yolo_stride"] = yolo_stride
+    _pipeline_status["depth"]["enabled"] = config.features.enable_depth
+
     LOGGER.info(
-        "Vision input started with YOLO %s; depth=%s.",
+        "Vision input started with YOLO %s (stride=%d, imgsz=%d); %s.",
         config.vision_model_path,
+        yolo_stride,
+        imgsz,
         depth_estimator.status_summary(),
     )
+
     while not stop_event.is_set():
         try:
             frame = await asyncio.wait_for(frame_queue.get(), timeout=1.0)
         except asyncio.TimeoutError:
             continue
 
+        frame_idx += 1
+        _pipeline_status["frames"] = frame_idx
+
         state, state_age = state_provider()
         have_lidar = state.range_mm > 0 and state_age <= config.tf_luna_state_max_age_s
         reported_range = state.range_mm if have_lidar else -1
 
-        depth_map = None
+        depth_map = last_depth_map
         if config.features.enable_depth:
-            depth_stride = (depth_stride + 1) % 2
-            if depth_stride == 0:
+            depth_counter += 1
+            run_depth = (depth_counter % depth_stride == 0) or (last_depth_map is None and not have_lidar)
+            if have_lidar and depth_counter % (depth_stride * 2) != 0:
+                run_depth = False
+            if run_depth:
                 depth_map = await asyncio.to_thread(
                     depth_estimator.estimate_depth_mm,
                     frame,
                 )
                 if depth_map is not None:
                     last_depth_map = depth_map
-            else:
-                depth_map = last_depth_map
+            _pipeline_status["depth"] = depth_estimator.telemetry()
 
-        try:
-            results = await asyncio.to_thread(
-                model.predict,
-                source=frame,
-                conf=config.vision_confidence,
-                verbose=False,
-            )
-        except Exception as exc:
-            LOGGER.warning("YOLO prediction failed: %s", exc)
-            await asyncio.sleep(0.2)
-            continue
+        run_yolo = (frame_idx % yolo_stride == 1) or cached_results is None
+        if run_yolo:
+            try:
+                cached_results = await asyncio.to_thread(
+                    model.predict,
+                    source=frame,
+                    conf=config.vision_confidence,
+                    verbose=False,
+                    imgsz=imgsz,
+                )
+            except Exception as exc:
+                LOGGER.warning("YOLO prediction failed: %s", exc)
+                await asyncio.sleep(0.05)
+                continue
 
         target, all_labels = _extract_target_with_depth(
-            results,
+            cached_results,
             depth_map=depth_map,
             calibration=calibration,
             range_mm=reported_range,
             center_tolerance=config.vision_center_tolerance,
+            fuse_lidar=have_lidar,
         )
 
         now = time.monotonic()
+        _pipeline_status["last_labels"] = dict(all_labels)
+        if all_labels:
+            _pipeline_status["detections"] = _pipeline_status.get("detections", 0) + 1
+
         if all_labels and now - last_summary_log > 2.0:
+            depth_note = ""
+            if target is not None and target.has_3d:
+                depth_note = f" @ {int(target.depth_mm)}mm"
+            elif have_lidar:
+                depth_note = f" (LiDAR {reported_range}mm)"
             LOGGER.info(
-                "Vision detections: %s",
+                "Vision detections: %s%s",
                 ", ".join(f"{lbl}×{cnt}" for lbl, cnt in sorted(all_labels.items())),
+                depth_note,
             )
             last_summary_log = now
 
-        # Expire old smoothed coordinates
         for lbl in list(smoothed_coords.keys()):
             t_last, _ = smoothed_coords[lbl]
             if now - t_last > 4.0:
@@ -127,7 +173,7 @@ async def vision_loop(
 
         if target is not None:
             if target.has_3d:
-                alpha = 0.35  # Smoothing factor (alpha)
+                alpha = 0.38
                 lbl = target.label
                 if lbl in smoothed_coords:
                     _, (prev_x, prev_y, prev_z) = smoothed_coords[lbl]
@@ -135,17 +181,28 @@ async def vision_loop(
                     smoothed_y = prev_y + alpha * (target.camera_y_mm - prev_y)
                     smoothed_z = prev_z + alpha * (target.camera_z_mm - prev_z)
                 else:
-                    smoothed_x, smoothed_y, smoothed_z = target.camera_x_mm, target.camera_y_mm, target.camera_z_mm
-                
+                    smoothed_x, smoothed_y, smoothed_z = (
+                        target.camera_x_mm,
+                        target.camera_y_mm,
+                        target.camera_z_mm,
+                    )
+
                 smoothed_coords[lbl] = (now, (smoothed_x, smoothed_y, smoothed_z))
-                
+
                 from dataclasses import replace
+
                 target = replace(
                     target,
                     camera_x_mm=smoothed_x,
                     camera_y_mm=smoothed_y,
                     camera_z_mm=smoothed_z,
                 )
+
+            if environment_cb is not None:
+                try:
+                    environment_cb(target, state, calibration)
+                except Exception as exc:
+                    LOGGER.debug("Environment callback failed: %s", exc)
 
         if target is None:
             confirm_label = None
@@ -183,7 +240,7 @@ async def vision_loop(
         await action_queue.put(
             ActionRequest(
                 source="vision",
-                intent="pick_object" if target.has_3d or have_lidar else "vision_target",
+                intent="pick_object",
                 payload={"target": target, "label": target.label},
                 requires_confirmation=True,
             )
@@ -194,9 +251,10 @@ def _extract_target_with_depth(
     results,
     *,
     depth_map,
-    calibration,
+    calibration: ArmCalibration | None,
     range_mm: int,
     center_tolerance: float,
+    fuse_lidar: bool = False,
 ) -> tuple[VisionTarget | None, dict[str, int]]:
     counts: dict[str, int] = {}
     if not results:
@@ -237,6 +295,8 @@ def _extract_target_with_depth(
                 frame_width=int(frame_width),
                 frame_height=int(frame_height),
             )
+            if depth_mm > 0 and fuse_lidar and range_mm > 0:
+                depth_mm = fuse_depth_with_lidar(depth_mm, range_mm)
             if depth_mm > 0:
                 intr = calibration.intrinsics
                 if intr.cx <= 2.0:
@@ -256,13 +316,14 @@ def _extract_target_with_depth(
                     depth_mm=depth_mm,
                     intrinsics=pix_intr,
                 )
-                has_3d = True
+                has_3d = cam_z > 50.0
 
         effective_range = int(range_mm if range_mm > 0 else depth_mm)
-        center_penalty = abs(center_x - 0.5)
+        center_penalty = abs(center_x - 0.5) + abs(center_y - 0.5) * 0.25
         if center_penalty > center_tolerance and not has_3d:
             continue
-        score = conf - center_penalty * 0.35 + (0.15 if has_3d else 0.0)
+        adl_boost = 0.08 if label in {"bottle", "cup", "cell phone", "remote", "book"} else 0.0
+        score = conf - center_penalty * 0.32 + (0.18 if has_3d else 0.0) + adl_boost
         if score <= best_score:
             continue
         best_score = score

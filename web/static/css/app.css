@@ -1045,6 +1045,10 @@ body {
 }
 
 /* Radar widget styling */
+.radar-card .row-head .badge {
+  margin-left: 0.25rem;
+}
+
 .radar-card {
   display: flex;
   flex-direction: column;

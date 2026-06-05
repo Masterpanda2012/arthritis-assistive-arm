@@ -154,10 +154,14 @@ def bbox_center_depth_mm(
     if arr.ndim != 2:
         return -1.0
     h, w = arr.shape
-    ix1 = max(0, min(w - 1, int(x1 * w / max(1, frame_width))))
-    ix2 = max(0, min(w, int(x2 * w / max(1, frame_width))))
-    iy1 = max(0, min(h - 1, int(y1 * h / max(1, frame_height))))
-    iy2 = max(0, min(h, int(y2 * h / max(1, frame_height))))
+    # YOLO boxes are pixel coords in orig_shape space; scale only when the
+    # depth map resolution differs from the frame (e.g. after upsampling).
+    sx = w / max(1.0, float(frame_width))
+    sy = h / max(1.0, float(frame_height))
+    ix1 = max(0, min(w - 1, int(round(x1 * sx))))
+    ix2 = max(ix1 + 1, min(w, int(round(x2 * sx))))
+    iy1 = max(0, min(h - 1, int(round(y1 * sy))))
+    iy2 = max(iy1 + 1, min(h, int(round(y2 * sy))))
     if ix2 <= ix1 or iy2 <= iy1:
         return -1.0
     patch = arr[iy1:iy2, ix1:ix2]

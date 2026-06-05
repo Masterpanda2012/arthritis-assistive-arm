@@ -78,6 +78,9 @@ class RuntimeConfig:
     vision_confidence: float
     vision_center_tolerance: float
     vision_cooldown_s: float
+    vision_frame_stride: int
+    vision_depth_stride: int
+    vision_imgsz: int
     tf_luna_state_max_age_s: float
     vosk_model_path: Path
     confirmation_timeout_s: float
@@ -244,9 +247,12 @@ def load_config() -> RuntimeConfig:
         web_camera_preview=False,
         enable_startup_sweep=enable_startup_sweep,
         vision_model_path=Path(os.environ.get("ROBOT_ARM_VISION_MODEL", "yolov8s.pt")),
-        vision_confidence=0.55,
-        vision_center_tolerance=0.18,
-        vision_cooldown_s=2.5,
+        vision_confidence=0.52,
+        vision_center_tolerance=0.22,
+        vision_cooldown_s=2.2,
+        vision_frame_stride=max(1, _env_int("ROBOT_ARM_VISION_STRIDE", 2)),
+        vision_depth_stride=max(2, _env_int("ROBOT_ARM_DEPTH_STRIDE", 3)),
+        vision_imgsz=max(320, min(640, _env_int("ROBOT_ARM_VISION_IMGSZ", 480))),
         tf_luna_state_max_age_s=1.0,
         vosk_model_path=project_root / "models" / "vosk-model-small-en-us-0.15",
         confirmation_timeout_s=12.0,

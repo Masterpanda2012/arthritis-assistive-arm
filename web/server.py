@@ -347,6 +347,7 @@ def _live_payload() -> dict:
         "gesture_diversity": tel.get("gesture_diversity", {}),
         "smart": smart,
         "gesture_capture": tel.get("gesture_capture", {}),
+        "vision_pipeline": tel.get("health", {}).get("vision_pipeline", {}),
         "profile_summary": {
             "display_name": profile.display_name,
             "motor_level": profile.motor_level.value,
@@ -428,6 +429,9 @@ def _gestures_payload() -> dict:
         "point": "Drop-ready pose",
         "call_me": "Pickup-ready pose",
         "peace": "Hold to quit (system)",
+        "ok_circle": "OK sign → yes (easier than thumbs up)",
+        "palm_down": "Flat palm down → home / rest",
+        "stop_palm": "Open palm toward camera → emergency stop",
     }
     custom: list[dict] = []
     if _robot_app is not None:

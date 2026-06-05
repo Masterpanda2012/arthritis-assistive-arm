@@ -594,6 +594,7 @@ class AdaptiveRobotArmApp:
                             self.stop_event,
                             self.current_state_snapshot,
                             self.camera.subscribe("vision"),
+                            environment_cb=self._vision_environment_update,
                         ),
                         name="vision-input",
                     )
@@ -657,6 +658,7 @@ class AdaptiveRobotArmApp:
                 "voice_age_s": round(now - self.last_voice_heard_at, 1) if self.last_voice_heard_at else -1.0,
                 "vision_age_s": round(now - self.last_vision_detect_at, 1) if self.last_vision_detect_at else -1.0,
                 "gesture_age_s": round(now - self.last_gesture_at, 1) if self.last_gesture_at else -1.0,
+                "vision_pipeline": self._vision_pipeline_health(),
                 "features": {
                     "gesture": self.config.features.enable_gesture,
                     "voice": self.config.features.enable_voice,
@@ -670,6 +672,64 @@ class AdaptiveRobotArmApp:
             payload["lab"] = self.lab_trials.snapshot()
             payload["custom_gesture_count"] = len(self.custom_gestures.list_all())
         return payload
+
+    def _vision_environment_update(
+        self,
+        target: Any,
+        state: Any,
+        calibration: Any | None,
+    ) -> None:
+        """Keep the workspace map warm from depth + LiDAR even before a pick."""
+        if target is None:
+            return
+        range_mm = int(getattr(target, "range_mm", -1) or -1)
+        if range_mm <= 0:
+            depth_mm = float(getattr(target, "depth_mm", -1.0) or -1.0)
+            if depth_mm > 0:
+                range_mm = int(depth_mm)
+        if range_mm <= 0:
+            return
+
+        base_deg = int(getattr(state, "base_deg", self.latest_state.base_deg))
+        if getattr(target, "has_3d", False):
+            if calibration is None:
+                from motion.calibration import load_calibration
+
+                calibration = load_calibration(self.config.calibration_path)
+            if calibration is not None:
+                joints = calibration.camera_mm_to_joints(
+                    float(getattr(target, "camera_x_mm", 0.0)),
+                    float(getattr(target, "camera_y_mm", 0.0)),
+                    float(getattr(target, "camera_z_mm", range_mm)),
+                )
+                base_deg = int(joints.get("base_deg", base_deg))
+
+        self.environment.update_object(
+            label=str(getattr(target, "label", "object")),
+            base_deg=base_deg,
+            distance_mm=range_mm,
+            confidence=float(getattr(target, "confidence", 0.0)),
+        )
+
+    def _vision_pipeline_health(self) -> dict[str, Any]:
+        if not self.config.features.enable_vision:
+            return {"active": False, "summary": "vision off"}
+        try:
+            from inputs.vision import vision_pipeline_status
+
+            status = vision_pipeline_status()
+            depth = status.get("depth") or {}
+            summary = depth.get("summary", "vision running")
+            return {
+                "active": True,
+                "summary": summary,
+                "depth_ready": bool(depth.get("ready")),
+                "last_median_mm": depth.get("last_median_mm"),
+                "last_inference_ms": depth.get("last_inference_ms"),
+                "labels": status.get("last_labels") or {},
+            }
+        except Exception:
+            return {"active": True, "summary": "vision running"}
 
     def _smart_snapshot(self, now: float) -> dict[str, Any]:
         profile = self.user_profile
@@ -793,10 +853,16 @@ class AdaptiveRobotArmApp:
             target = action.payload.get("target")
             label = getattr(target, "label", "object")
             conf = getattr(target, "confidence", 0.0)
+            depth_mm = int(getattr(target, "depth_mm", -1) or -1)
+            range_mm = int(getattr(target, "range_mm", -1) or -1)
+            dist = range_mm if range_mm > 0 else depth_mm
+            extra = f" · {dist}mm" if dist > 0 else ""
+            if getattr(target, "has_3d", False):
+                extra += " · 3D"
             self.activity.add(
                 source="vision",
                 kind="detected",
-                text=f"{label}  ({conf:.0%})",
+                text=f"{label} ({conf:.0%}){extra}",
                 accent="vision",
             )
             return
@@ -979,12 +1045,11 @@ class AdaptiveRobotArmApp:
 
         if action.intent == "vision_target":
             target = action.payload.get("target")
-            if target and getattr(target, "range_mm", -1) > 0:
-                self.environment.update_object(
-                    label=target.label,
-                    base_deg=self.latest_state.base_deg,
-                    distance_mm=target.range_mm,
-                    confidence=target.confidence
+            if target is not None:
+                self._vision_environment_update(
+                    target,
+                    self.latest_state,
+                    None,
                 )
             if self.is_sweeping:
                 return None
