@@ -118,21 +118,22 @@ const state = {
   helpPayload: null,
   liveStats: { range: null, session: null },
   hostedPreview: false,
+  uiCache: {
+    inputModes: "",
+    activity: "",
+    diversity: "",
+    smart: "",
+    voice: "",
+    voiceMic: "",
+    voiceFeedback: "",
+    pending: "",
+  },
 };
 
-function flashEl(el, cls = "value-flash") {
-  if (!el) return;
-  el.classList.remove(cls);
-  void el.offsetWidth;
-  el.classList.add(cls);
-  el.addEventListener("animationend", () => el.classList.remove(cls), { once: true });
-}
-
-function animateBar(el) {
-  if (!el) return;
-  el.classList.remove("bar-animate");
-  void el.offsetWidth;
-  el.classList.add("bar-animate");
+function cacheChanged(key, value) {
+  if (state.uiCache[key] === value) return false;
+  state.uiCache[key] = value;
+  return true;
 }
 
 async function api(path, opts = {}) {
@@ -189,11 +190,6 @@ function setActiveTab(name) {
     const wasActive = panel.classList.contains("active");
     panel.classList.toggle("active", active);
     panel.toggleAttribute("hidden", !active);
-    if (active && !wasActive) {
-      panel.classList.remove("panel-animate");
-      void panel.offsetWidth;
-      panel.classList.add("panel-animate");
-    }
   });
 }
 
@@ -242,8 +238,7 @@ function appendHelpCell(td, text) {
 
 function renderHelpSection(section, index) {
   const block = document.createElement("section");
-  block.className = "panel help-section help-reveal";
-  block.style.animationDelay = `${0.06 * index}s`;
+  block.className = "panel help-section";
   block.dataset.helpId = section.id || "";
 
   const h2 = document.createElement("h2");
@@ -421,19 +416,21 @@ function applyInputModes(profile) {
   $("voice-card").classList.toggle("disabled-overlay", !voiceUsable);
   updateVoiceMicPill(null, voice);
 
-  const chips = $("input-chips");
-  while (chips.firstChild) chips.removeChild(chips.firstChild);
-  [
-    ["Voice", voice],
-    ["Gestures", gesture],
-    ["Web / manual", manual],
-  ].forEach(([label, on], i) => {
-    const c = document.createElement("span");
-    c.className = `chip chip-animate ${on ? "chip-on" : "chip-off"}`;
-    c.style.animationDelay = `${0.06 * i}s`;
-    c.textContent = label;
-    chips.appendChild(c);
-  });
+  const chipKey = `${voice}|${gesture}|${manual}`;
+  if (cacheChanged("inputModes", chipKey)) {
+    const chips = $("input-chips");
+    while (chips.firstChild) chips.removeChild(chips.firstChild);
+    [
+      ["Voice", voice],
+      ["Gestures", gesture],
+      ["Web / manual", manual],
+    ].forEach(([label, on]) => {
+      const c = document.createElement("span");
+      c.className = `chip ${on ? "chip-on" : "chip-off"}`;
+      c.textContent = label;
+      chips.appendChild(c);
+    });
+  }
 
   const banner = $("alert-banner");
   if (!voice && !gesture && !manual) {
@@ -483,8 +480,7 @@ function bindControls() {
   ADL.forEach((item, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "btn task-btn animate-in";
-    b.style.animationDelay = `${0.05 * i}s`;
+    b.className = "btn task-btn";
     b.innerHTML = `<span class="task-icon">${item.icon}</span><span><strong>${item.label}</strong><small>${item.detail}</small></span>`;
     b.addEventListener("focus", () => showTaskContext(item));
     b.addEventListener("mouseenter", () => showTaskContext(item));
@@ -499,8 +495,7 @@ function bindControls() {
   MOTION.forEach((item, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "btn animate-in";
-    b.style.animationDelay = `${0.03 * i}s`;
+    b.className = "btn";
     b.textContent = item.label;
     b.addEventListener("click", () => sendCommand(item.intent, item.payload || {}));
     motion.appendChild(b);
@@ -539,6 +534,8 @@ async function sendCommand(intent, payload = {}, requiresConfirmation = false) {
 function setVoiceFeedback(message, kind = "") {
   const el = $("voice-feedback");
   if (!el) return;
+  const sig = `${kind}|${message}`;
+  if (!cacheChanged("voiceFeedback", sig)) return;
   el.textContent = message;
   el.className = `voice-feedback${kind ? ` voice-${kind}` : ""}`;
 }
@@ -584,6 +581,9 @@ function updateVoiceMicPill(mic, voiceEnabled) {
   const pill = $("voice-mic-pill");
   if (!pill) return;
   const enabled = voiceEnabled ?? state.profile?.enable_voice_input !== false;
+  const mode = enabled ? (mic?.mode || "off") : "profile-off";
+  const sig = `${mode}|${mic?.device || ""}|${mic?.error || ""}|${enabled}`;
+  if (!cacheChanged("voiceMic", sig)) return;
 
   if (!enabled) {
     pill.className = "voice-mic-pill voice-mic-off";
@@ -619,6 +619,17 @@ function updateVoiceMicPill(mic, voiceEnabled) {
 
 function updateVoice(voice) {
   if (!voice) return;
+
+  const voiceSig = JSON.stringify({
+    partial: voice.partial,
+    heard: voice.heard,
+    status: voice.status,
+    intent: voice.intent,
+    source: voice.source,
+    mic: voice.mic,
+  });
+  if (!cacheChanged("voice", voiceSig)) return;
+  state.uiCache.voiceFeedback = "";
 
   updateVoiceMicPill(voice.mic);
 
@@ -946,24 +957,19 @@ function updateArm(arm) {
     const max = map[j];
     const min = mins[j];
     const pct = Math.max(0, Math.min(100, ((v - min) / (max - min)) * 100));
-    const bar = $(`m-${j}`);
-    const prev = parseFloat(bar?.dataset.pct || "NaN");
-    bar.style.width = `${pct}%`;
-    bar.dataset.pct = String(pct);
-    if (!Number.isNaN(prev) && Math.abs(prev - pct) > 0.5) animateBar(bar);
+    $(`m-${j}`).style.width = `${pct}%`;
     $(`v-${j}`).textContent = `${v}°`;
   });
   const rangeText = arm.range_mm > 0 ? String(arm.range_mm) : "—";
   $("v-range").textContent = rangeText;
   const statRange = $("stat-range");
-  if (statRange) {
-    if (state.liveStats.range !== rangeText) flashEl(statRange);
-    statRange.textContent = rangeText;
-    state.liveStats.range = rangeText;
-  }
+  if (statRange) statRange.textContent = rangeText;
 }
 
 function updateActivity(items) {
+  const sig = JSON.stringify(items || []);
+  if (!cacheChanged("activity", sig)) return;
+
   const feed = $("activity-feed");
   while (feed.firstChild) feed.removeChild(feed.firstChild);
   if (!items || !items.length) {
@@ -972,9 +978,8 @@ function updateActivity(items) {
     feed.appendChild(li);
     return;
   }
-  items.slice().reverse().forEach((ev, i) => {
+  items.slice().reverse().forEach((ev) => {
     const li = document.createElement("li");
-    if (i === 0) li.classList.add("activity-new");
     const span = document.createElement("span");
     span.className = "src";
     const src = (ev.source || "?").toLowerCase();
@@ -987,6 +992,9 @@ function updateActivity(items) {
 }
 
 function updatePending(pending) {
+  const sig = pending ? JSON.stringify(pending) : "";
+  if (!cacheChanged("pending", sig)) return;
+
   const el = $("pending-banner");
   if (!pending) {
     el.classList.add("hidden");
@@ -997,15 +1005,17 @@ function updatePending(pending) {
 }
 
 function updateDiversity(diversity) {
+  if (!diversity) return;
+  const sig = `${(diversity.covered || []).join(",")}|${diversity.hint || ""}`;
+  if (!cacheChanged("diversity", sig)) return;
+
   const track = $("diversity-track");
   while (track.firstChild) track.removeChild(track.firstChild);
-  if (!diversity) return;
 
   const covered = new Set(diversity.covered || []);
-  FAMILIES.forEach((f, i) => {
+  FAMILIES.forEach((f) => {
     const pill = document.createElement("span");
     pill.className = `diversity-pill ${covered.has(f) ? "done" : ""}`;
-    pill.style.animationDelay = `${0.05 * i}s`;
     pill.textContent = f;
     track.appendChild(pill);
   });
@@ -1014,9 +1024,18 @@ function updateDiversity(diversity) {
 }
 
 function updateSmart(smart, fallback) {
+  if (!smart) return;
+
+  const channels = (fallback && fallback.channels) || {};
+  const sig = JSON.stringify({
+    smart,
+    tip: (fallback && fallback.last_suggestion) || "",
+    channels,
+  });
+  if (!cacheChanged("smart", sig)) return;
+
   const panel = $("smart-panel");
   while (panel.firstChild) panel.removeChild(panel.firstChild);
-  if (!smart) return;
 
   const addLine = (text, alert = false) => {
     const p = document.createElement("p");
@@ -1039,12 +1058,7 @@ function updateSmart(smart, fallback) {
     pill.className = "pill pill-ok";
   }
   const statSession = $("stat-session");
-  if (statSession) {
-    const count = String(smart.command_count ?? 0);
-    if (state.liveStats.session !== count) flashEl(statSession);
-    statSession.textContent = count;
-    state.liveStats.session = count;
-  }
+  if (statSession) statSession.textContent = String(smart.command_count ?? 0);
 
   const tip = $("fallback-tip");
   tip.textContent = (fallback && fallback.last_suggestion) || "";
@@ -1060,7 +1074,6 @@ function updateSmart(smart, fallback) {
 
   const health = $("input-health");
   while (health.firstChild) health.removeChild(health.firstChild);
-  const channels = (fallback && fallback.channels) || {};
   Object.entries(channels).forEach(([name, stats]) => {
     const row = document.createElement("div");
     row.className = "health-row";
@@ -1456,8 +1469,7 @@ function connectLive() {
 
   ws.onopen = () => {
     live.textContent = "Live";
-    live.className = "pill pill-ok pill-live";
-    flashEl(live, "value-flash");
+    live.className = "pill pill-ok";
   };
   ws.onclose = () => {
     live.textContent = "Reconnecting…";
@@ -1485,9 +1497,6 @@ async function init() {
   }
   initRadar();
 
-  requestAnimationFrame(() => {
-    document.body.classList.add("app-ready");
-  });
   window.addEventListener("resize", () => {
     const canvas = $("radar-canvas");
     if (canvas) radarCtx = setupHiDpiCanvas(canvas, 500, 280);
