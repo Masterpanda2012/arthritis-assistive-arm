@@ -106,16 +106,15 @@ _DEFAULT_BINDINGS: dict[str, tuple[str, dict]] = {
     "four": ("preset_pose", {"name": "inspect"}),
     # New gestures with richer output coverage.
     "pinch": ("rotate_right", {}),
-    "rock": ("emergency_stop", {}),
+    "rock": ("base_left", {}),
     "call_me": ("preset_pose", {"name": "pickup_ready"}),
     "point": ("preset_pose", {"name": "drop_ready"}),
     "thumbs_up": ("confirm_yes", {}),
-    "thumbs_down": ("home", {}),
+    "thumbs_down": ("lift_down", {}),
     "stop_palm": ("emergency_stop", {}),
-    "high_five": ("preset_pose", {"name": "inspect"}),
-    "spread": ("open_claw", {}),
-    "spider": ("rotate_right", {}),
-    # Arthritis-friendly alternates — less thumb strain than thumbs-up / peace.
+    "high_five": ("preset_pose", {"name": "survey"}),
+    "spread": ("preset_pose", {"name": "survey"}),
+    "spider": ("base_right", {}),
     "ok_circle": ("confirm_yes", {}),
     "palm_down": ("home", {}),
 }

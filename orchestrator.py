@@ -5,7 +5,7 @@ import json
 import logging
 import time
 from collections import Counter, deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,7 @@ from ai.custom_gestures import CustomGestureCatalog, average_vectors
 from ai.gesture_diversity import GestureDiversityTracker
 from config import RuntimeConfig
 from models import ActionRequest, ArmState, PlannerResult
+from motion.lidar_filter import LidarFilter
 from motion.planner import MotionPlanner
 from motion.serial_bridge import SerialBridge
 
@@ -200,6 +201,7 @@ class AdaptiveRobotArmApp:
         self.state_queue: asyncio.Queue[ArmState] = asyncio.Queue()
         self.stop_event = asyncio.Event()
         self.serial_bridge = SerialBridge(config, self.state_queue)
+        self.lidar_filter = LidarFilter()
         self.environment = EnvironmentMap(expiration_s=300.0)
         self.planner = MotionPlanner(config, self.environment)
         self.memory_store = MemoryStore(config.memory_db_path)
@@ -683,9 +685,11 @@ class AdaptiveRobotArmApp:
         if target is None:
             return
         range_mm = int(getattr(target, "range_mm", -1) or -1)
+        if range_mm <= 0 and self.lidar_filter.last_good > 0:
+            range_mm = self.lidar_filter.last_good
         if range_mm <= 0:
             depth_mm = float(getattr(target, "depth_mm", -1.0) or -1.0)
-            if depth_mm > 0:
+            if depth_mm > 0 and self.lidar_filter.last_good <= 0:
                 range_mm = int(depth_mm)
         if range_mm <= 0:
             return
@@ -763,6 +767,9 @@ class AdaptiveRobotArmApp:
     async def _state_consumer(self) -> None:
         while not self.stop_event.is_set():
             state = await self.state_queue.get()
+            filtered_mm = self.lidar_filter.ingest(state.range_mm)
+            if filtered_mm > 0:
+                state = replace(state, range_mm=filtered_mm)
             self.latest_state = state
             self.latest_state_at = time.monotonic()
             LOGGER.info(
@@ -1136,7 +1143,13 @@ class AdaptiveRobotArmApp:
                 return task.confirmation_message
         if action.intent == "pick_object":
             label = action.payload.get("label", "the object")
-            return f"I'll gently reach for {label}. Say yes to continue, or no to cancel."
+            lidar_note = ""
+            if self.lidar_filter.last_good > 0:
+                lidar_note = f" LiDAR reads {self.lidar_filter.last_good} mm — point the sensor at {label} if that looks wrong."
+            return (
+                f"I'll gently reach for {label}.{lidar_note} "
+                "Say yes to continue, or no to cancel."
+            )
         if action.intent == "place_object":
             return "I'll place the object down carefully. Say yes to continue, or no to cancel."
         return ""

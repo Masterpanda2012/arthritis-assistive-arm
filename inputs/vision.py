@@ -124,7 +124,7 @@ async def vision_loop(
                     last_depth_map = depth_map
             _pipeline_status["depth"] = depth_estimator.telemetry()
 
-        run_yolo = (frame_idx % yolo_stride == 1) or cached_results is None
+        run_yolo = ((frame_idx - 1) % yolo_stride == 0) or cached_results is None
         if run_yolo:
             try:
                 cached_results = await asyncio.to_thread(
@@ -214,14 +214,14 @@ async def vision_loop(
         else:
             confirm_label = target.label
             confirm_streak = 1
-        if confirm_streak < 2:
+        if confirm_streak < 1:
             continue
 
         if now - last_emit < config.vision_cooldown_s:
             continue
 
         last_emit = now
-        can_pick = have_lidar or target.has_3d
+        can_pick = have_lidar
         if not can_pick:
             LOGGER.info(
                 "Vision saw '%s' (conf=%.2f) but no depth/LiDAR; surfacing detection only.",
@@ -285,7 +285,28 @@ def _extract_target_with_depth(
         depth_mm = -1.0
         cam_x = cam_y = cam_z = 0.0
         has_3d = False
-        if depth_map is not None and calibration is not None:
+        if fuse_lidar and range_mm > 0 and calibration is not None:
+            depth_mm = float(range_mm)
+            intr = calibration.intrinsics
+            if intr.cx <= 2.0:
+                cx_px = intr.cx * frame_width
+                cy_px = intr.cy * frame_height
+                focal = intr.focal_length_px * max(frame_width, frame_height) / 640.0
+            else:
+                cx_px = intr.cx
+                cy_px = intr.cy
+                focal = intr.focal_length_px
+            from motion.calibration import CameraIntrinsics
+
+            pix_intr = CameraIntrinsics(focal_length_px=focal, cx=cx_px, cy=cy_px)
+            cam_x, cam_y, cam_z = pixel_depth_to_camera_mm(
+                u_px=u_px,
+                v_px=v_px,
+                depth_mm=depth_mm,
+                intrinsics=pix_intr,
+            )
+            has_3d = cam_z > 50.0
+        elif depth_map is not None and calibration is not None:
             depth_mm = bbox_center_depth_mm(
                 depth_map,
                 x1,

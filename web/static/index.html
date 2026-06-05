@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/app.css?v=20260607" />
+  <link rel="stylesheet" href="/static/css/app.css?v=20260609" />
 </head>
 <body class="app-loaded">
   <div class="bg-glow" aria-hidden="true"></div>
@@ -25,10 +25,12 @@
         <p class="tagline">Gentle reach for everyday independence</p>
       </div>
     </div>
-    <div class="status-pills" role="status" aria-live="polite">
-      <span id="serial-pill" class="pill pill-muted">Serial —</span>
-      <span id="live-pill" class="pill pill-muted">Connecting…</span>
-      <span id="smart-pill" class="pill pill-muted">Session —</span>
+    <div class="header-actions">
+      <div class="status-pills" role="status" aria-live="polite">
+        <span id="serial-pill" class="pill pill-muted">Serial —</span>
+        <span id="live-pill" class="pill pill-muted">Connecting…</span>
+        <span id="smart-pill" class="pill pill-muted">Session —</span>
+      </div>
     </div>
   </header>
 
@@ -48,6 +50,7 @@
     <button type="button" class="tab active" id="tab-control" data-tab="control" role="tab" aria-controls="panel-control" aria-selected="true">Control</button>
     <button type="button" class="tab" id="tab-gestures" data-tab="gestures" role="tab" aria-controls="panel-gestures" aria-selected="false">Gestures</button>
     <button type="button" class="tab" id="tab-profile" data-tab="profile" role="tab" aria-controls="panel-profile" aria-selected="false">Profile</button>
+    <button type="button" class="tab" id="tab-help" data-tab="help" role="tab" aria-controls="panel-help" aria-selected="false">Help</button>
   </nav>
 
   <div class="app-shell">
@@ -242,6 +245,24 @@
           </div>
         </form>
       </section>
+
+      <!-- HELP -->
+      <section id="panel-help" class="tab-panel" role="tabpanel" aria-labelledby="tab-help" hidden>
+        <div class="card help-intro-card" id="help-intro-card">
+          <div class="card-head row-head">
+            <div>
+              <h2 id="help-greeting">Your controls</h2>
+              <p id="help-sub">Cheat sheet tailored to your profile.</p>
+            </div>
+            <span id="help-lidar-badge" class="badge badge-off" title="TF-Luna range">LiDAR —</span>
+          </div>
+          <div id="help-active-chips" class="hero-chips help-chips" aria-label="Active input methods"></div>
+          <ul id="help-notes" class="help-notes"></ul>
+        </div>
+        <div id="help-sections" class="help-sections">
+          <p class="help-loading">Loading cheat sheet…</p>
+        </div>
+      </section>
     </main>
 
     <aside class="live-rail">
@@ -274,6 +295,6 @@
   <footer class="footer">
     <p>Research prototype — not a medical device · Hold <strong>peace sign</strong> to quit · Say <strong>stop</strong> anytime</p>
   </footer>
-  <script src="/static/js/app.js?v=20260607" type="module"></script>
+  <script src="/static/js/app.js?v=20260609" type="module"></script>
 </body>
 </html>

@@ -368,8 +368,11 @@ void readTfLuna() {
 
     if (checksum == frame[TF_LUNA_FRAME_SIZE - 1]) {
       int distanceCm = frame[2] + frame[3] * 256;
-      latestRangeMm = distanceCm * 10;
-      lastLidarOkMs = millis();
+      // TF-Luna: 0 = invalid; usable range roughly 2–800 cm.
+      if (distanceCm >= 2 && distanceCm <= 800) {
+        latestRangeMm = distanceCm * 10;
+        lastLidarOkMs = millis();
+      }
       if (!lidarOnline) {
         lidarOnline = true;
         sendDebug("LIDAR", "ONLINE");

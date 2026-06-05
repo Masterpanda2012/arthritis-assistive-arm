@@ -250,7 +250,7 @@ def load_config() -> RuntimeConfig:
         vision_confidence=0.52,
         vision_center_tolerance=0.22,
         vision_cooldown_s=2.2,
-        vision_frame_stride=max(1, _env_int("ROBOT_ARM_VISION_STRIDE", 2)),
+        vision_frame_stride=max(1, _env_int("ROBOT_ARM_VISION_STRIDE", 1)),
         vision_depth_stride=max(2, _env_int("ROBOT_ARM_DEPTH_STRIDE", 3)),
         vision_imgsz=max(320, min(640, _env_int("ROBOT_ARM_VISION_IMGSZ", 480))),
         tf_luna_state_max_age_s=1.0,

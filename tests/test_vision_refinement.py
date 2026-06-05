@@ -62,7 +62,7 @@ class TestVisionRefinement(unittest.TestCase):
         stop_event = asyncio.Event()
 
         # State provider
-        state = ArmState(90, 120, 90, 100, range_mm=-1, estop=False, last_error="")
+        state = ArmState(90, 120, 90, 100, range_mm=520, estop=False, last_error="")
         state_provider = lambda: (state, 0.0)
 
         # Mock frame queue

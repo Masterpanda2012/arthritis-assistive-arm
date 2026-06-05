@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -39,6 +39,36 @@ def create_app() -> FastAPI:
     @api.get("/")
     async def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    @api.get("/help")
+    async def help_page() -> RedirectResponse:
+        return RedirectResponse(url="/?tab=help", status_code=302)
+
+    @api.get("/api/help")
+    async def help_api() -> dict:
+        from web.help_content import build_help_payload
+
+        profile = _load_profile()
+        custom: list[dict] = []
+        lidar = {"valid": False, "range_mm": None}
+        serial_mode = "offline"
+        if _robot_app is not None:
+            custom = [g.to_dict() for g in _robot_app.custom_gestures.list_all()]
+            filt = getattr(_robot_app, "lidar_filter", None)
+            if filt is not None:
+                st = filt.status()
+                lidar = {
+                    "valid": st.get("valid", False),
+                    "range_mm": st.get("last_good_mm"),
+                    "samples": st.get("samples", 0),
+                }
+            serial_mode = _robot_app.serial_bridge.mode
+        return build_help_payload(
+            profile,
+            custom_gestures=custom,
+            lidar=lidar,
+            serial_mode=serial_mode,
+        )
 
     @api.get("/api/health")
     async def health() -> dict:
@@ -417,14 +447,14 @@ def _gestures_payload() -> dict:
         "three": "Rotate left",
         "four": "Inspect pose",
         "thumbs_up": "Confirm yes",
-        "thumbs_down": "Go home",
+        "thumbs_down": "Lower arm",
         "fist": "Close claw",
         "open": "Open claw",
-        "spread": "Open claw (wide spread)",
-        "spider": "Rotate right",
-        "high_five": "Inspect pose",
-        "pinch": "Rotate right",
-        "rock": "Emergency stop",
+        "spread": "Survey pose (wide fingers)",
+        "spider": "Turn base right",
+        "high_five": "Survey pose",
+        "pinch": "Rotate wrist right",
+        "rock": "Turn base left",
         "stop_palm": "Emergency stop",
         "point": "Drop-ready pose",
         "call_me": "Pickup-ready pose",

@@ -114,6 +114,8 @@ const state = {
   cameraStreamOn: false,
   cameraActive: false,
   radarLogical: { width: 500, height: 280 },
+  helpLoaded: false,
+  helpPayload: null,
 };
 
 async function api(path, opts = {}) {
@@ -189,12 +191,179 @@ function setActiveTab(name) {
 function bindTabs() {
   document.querySelectorAll(".tab-nav .tab").forEach((tab) => {
     tab.addEventListener("click", () => {
-      setActiveTab(tab.dataset.tab);
-      if (tab.dataset.tab === "gestures" && state.profile?.enable_gesture_input !== false) {
+      const name = tab.dataset.tab;
+      setActiveTab(name);
+      history.replaceState(null, "", name === "control" ? "/" : `/?tab=${name}`);
+      if (name === "gestures" && state.profile?.enable_gesture_input !== false) {
         startCameraPreview();
+      }
+      if (name === "help") {
+        loadHelp(true);
       }
     });
   });
+}
+
+function resolveInitialTab() {
+  const params = new URLSearchParams(location.search);
+  const tab = params.get("tab") || (location.hash || "").replace(/^#/, "");
+  if (tab && document.getElementById(`tab-${tab}`)) {
+    return tab;
+  }
+  return "control";
+}
+
+function appendHelpCell(td, text) {
+  String(text)
+    .split(/(`[^`]+`)/g)
+    .forEach((part) => {
+      if (part.startsWith("`") && part.endsWith("`")) {
+        const code = document.createElement("code");
+        code.textContent = part.slice(1, -1);
+        td.appendChild(code);
+      } else if (part) {
+        td.appendChild(document.createTextNode(part));
+      }
+    });
+}
+
+function renderHelpSection(section, index) {
+  const block = document.createElement("section");
+  block.className = "card help-section";
+  block.style.animationDelay = `${0.05 * index}s`;
+  block.dataset.helpId = section.id || "";
+
+  const h2 = document.createElement("h2");
+  h2.textContent = section.title;
+  block.appendChild(h2);
+
+  if (section.description) {
+    const p = document.createElement("p");
+    p.textContent = section.description;
+    block.appendChild(p);
+  }
+  if (section.tip) {
+    const tip = document.createElement("p");
+    tip.className = `help-tip ${section.tip_kind || ""}`.trim();
+    tip.textContent = section.tip;
+    block.appendChild(tip);
+  }
+
+  if (section.rows?.length) {
+    const table = document.createElement("table");
+    table.className = "cheat-table";
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    section.columns.forEach((col) => {
+      const th = document.createElement("th");
+      th.textContent = col;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    section.rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      row.forEach((cell) => {
+        const td = document.createElement("td");
+        appendHelpCell(td, cell);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    block.appendChild(table);
+  }
+
+  if (section.cards?.length) {
+    const grid = document.createElement("div");
+    grid.className = "cheat-grid";
+    section.cards.forEach((card) => {
+      const c = document.createElement("div");
+      c.className = "cheat-card";
+      const strong = document.createElement("strong");
+      strong.textContent = card.title;
+      const span = document.createElement("span");
+      span.textContent = card.detail;
+      c.appendChild(strong);
+      c.appendChild(span);
+      grid.appendChild(c);
+    });
+    block.appendChild(grid);
+  }
+
+  return block;
+}
+
+function renderHelpIntro(intro, lidar, serialMode) {
+  $("help-greeting").textContent = intro?.greeting || "Your controls";
+  const level = (intro?.motor_level || "moderate").replace(/^\w/, (c) => c.toUpperCase());
+  $("help-sub").textContent = `${level} profile · ${intro?.speed_pct ?? 30}% speed · cheat sheet updates when you save Profile`;
+
+  const chips = $("help-active-chips");
+  while (chips.firstChild) chips.removeChild(chips.firstChild);
+  (intro?.active_inputs || []).forEach((label) => {
+    const on = !String(label).startsWith("None");
+    const c = document.createElement("span");
+    c.className = `chip ${on ? "chip-on" : "chip-off"}`;
+    c.textContent = label;
+    chips.appendChild(c);
+  });
+
+  const notes = $("help-notes");
+  while (notes.firstChild) notes.removeChild(notes.firstChild);
+  (intro?.notes || []).forEach((note) => {
+    const li = document.createElement("li");
+    li.textContent = note;
+    notes.appendChild(li);
+  });
+
+  updateHelpLidarBadge(lidar, serialMode);
+}
+
+function updateHelpLidarBadge(lidar, serialMode) {
+  const badge = $("help-lidar-badge");
+  if (!badge) return;
+  const mm = lidar?.range_mm;
+  const valid = lidar?.valid && mm > 0;
+  if (valid) {
+    badge.textContent = `LiDAR ${mm} mm`;
+    badge.className = "badge badge-ok";
+  } else if (serialMode && serialMode !== "live" && serialMode !== "offline") {
+    badge.textContent = `Sim · ${serialMode}`;
+    badge.className = "badge badge-warn";
+  } else {
+    badge.textContent = "LiDAR —";
+    badge.className = "badge badge-off";
+  }
+}
+
+function renderHelpPayload(data) {
+  state.helpPayload = data;
+  renderHelpIntro(data.intro, data.lidar, data.serial_mode);
+  const root = $("help-sections");
+  while (root.firstChild) root.removeChild(root.firstChild);
+  (data.sections || []).forEach((section, i) => {
+    root.appendChild(renderHelpSection(section, i));
+  });
+  state.helpLoaded = true;
+}
+
+async function loadHelp(force = false) {
+  if (state.helpLoaded && !force) return;
+  const root = $("help-sections");
+  if (!state.helpLoaded && root && !root.querySelector(".help-section")) {
+    root.textContent = "Loading cheat sheet…";
+    root.firstChild?.classList?.add("help-loading");
+  }
+  try {
+    const data = await api("/api/help");
+    renderHelpPayload(data);
+  } catch {
+    if (root) {
+      root.textContent = "Could not load help — start main.py --web first.";
+    }
+  }
 }
 
 function markDirty() {
@@ -256,6 +425,37 @@ function applyInputModes(profile) {
   } else {
     banner.classList.add("hidden");
   }
+  refreshQuickCommands(profile);
+}
+
+function refreshQuickCommands(profile) {
+  const chips = $("quick-commands");
+  if (!chips) return;
+  while (chips.firstChild) chips.removeChild(chips.firstChild);
+  if (profile?.enable_voice_input === false) {
+    const note = document.createElement("p");
+    note.className = "voice-feedback";
+    note.textContent = "Voice off — enable in Profile or use web buttons.";
+    chips.appendChild(note);
+    return;
+  }
+  const filtered = QUICK_COMMANDS.filter((text) => {
+    if (text === "stop") return true;
+    if (text.includes("pills") || text.includes("remote")) return true;
+    if (text === "open the claw" || text === "go home") return true;
+    return profile?.enable_manual_input !== false;
+  });
+  filtered.forEach((text) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "command-chip";
+    chip.textContent = text;
+    chip.addEventListener("click", () => {
+      $("voice-text").value = text;
+      sendSay(text);
+    });
+    chips.appendChild(chip);
+  });
 }
 
 function bindControls() {
@@ -330,19 +530,6 @@ function bindVoiceBar() {
   $("btn-send-say").addEventListener("click", () => sendSay($("voice-text").value));
   $("voice-text").addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendSay($("voice-text").value);
-  });
-
-  const chips = $("quick-commands");
-  QUICK_COMMANDS.forEach((text) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "command-chip";
-    chip.textContent = text;
-    chip.addEventListener("click", () => {
-      $("voice-text").value = text;
-      sendSay(text);
-    });
-    chips.appendChild(chip);
   });
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -487,6 +674,10 @@ function fillProfile(data) {
   fillCatalogue(data.custom_gestures || []);
   applyInputModes(data);
   updateComfortSummary(data);
+  state.helpLoaded = false;
+  if (document.getElementById("panel-help")?.classList.contains("active")) {
+    loadHelp(true);
+  }
   state.dirty = false;
   $("profile-dirty").classList.add("hidden");
 }
@@ -1099,6 +1290,14 @@ function applyLivePayload(msg) {
   const serial = msg.serial || {};
   $("serial-pill").textContent = serial.mode === "live" ? "Arm connected" : `Sim · ${serial.mode || "?"}`;
   $("serial-pill").className = serial.mode === "live" ? "pill pill-ok" : "pill pill-warn";
+
+  if (state.helpPayload) {
+    const lidar = {
+      valid: (msg.arm?.range_mm ?? -1) > 0,
+      range_mm: msg.arm?.range_mm > 0 ? msg.arm.range_mm : null,
+    };
+    updateHelpLidarBadge(lidar, serial.mode);
+  }
 }
 
 function connectLive() {
@@ -1128,7 +1327,12 @@ async function init() {
   bindPresets();
   bindProfileDirty();
   setWizardStep(1);
-  setActiveTab("control");
+  const initialTab = resolveInitialTab();
+  setActiveTab(initialTab);
+  if (initialTab === "help") loadHelp(true);
+  if (initialTab === "gestures" && state.profile?.enable_gesture_input !== false) {
+    startCameraPreview();
+  }
   initRadar();
 
   requestAnimationFrame(() => {

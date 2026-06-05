@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from pathlib import Path
 
 from config import Pose, RuntimeConfig
@@ -147,6 +148,46 @@ class MotionPlanner:
         LOGGER.info("Ignoring unsupported intent '%s'", intent)
         return PlannerResult(kind="NONE")
 
+    def _joints_for_pick_target(
+        self,
+        target: VisionTarget,
+        *,
+        state: ArmState,
+        label: str | None,
+    ) -> dict[str, int] | None:
+        if self.calibration is None:
+            return None
+        lidar_mm = int(target.range_mm if target.range_mm > 0 else state.range_mm)
+        if lidar_mm > 0:
+            if target.has_3d and abs(target.camera_z_mm - lidar_mm) < 500:
+                x_mm = target.camera_x_mm
+            else:
+                x_mm = (target.image_x - 0.5) * 280.0
+            joints = self.calibration.camera_mm_to_joints(x_mm, 0.0, float(lidar_mm))
+            LOGGER.info(
+                "LiDAR pick '%s' → base=%d lift=%d (range=%d mm, x=%.0f)",
+                label or "object",
+                joints["base_deg"],
+                joints["lift_deg"],
+                lidar_mm,
+                x_mm,
+            )
+            return joints
+        if target.has_3d:
+            joints = self.calibration.camera_mm_to_joints(
+                target.camera_x_mm,
+                target.camera_y_mm,
+                target.camera_z_mm,
+            )
+            LOGGER.info(
+                "Vision-only 3D '%s' → base=%d lift=%d (no LiDAR)",
+                label or "object",
+                joints["base_deg"],
+                joints["lift_deg"],
+            )
+            return joints
+        return None
+
     def _plan_pick_sequence(self, action: ActionRequest, state: ArmState) -> tuple[ArmCommand, ...]:
         label = action.payload.get("label")
         target = action.payload.get("target")
@@ -163,29 +204,19 @@ class MotionPlanner:
                 base_angle_target = obj.base_deg
                 LOGGER.info("Planner mapping '%s' vector to base_deg=%d", label, base_angle_target)
 
-        if isinstance(target, VisionTarget) and target.has_3d and self.calibration is not None:
-            joints = self.calibration.camera_mm_to_joints(
-                target.camera_x_mm,
-                target.camera_y_mm,
-                target.camera_z_mm,
-            )
-            base_angle_target = joints["base_deg"]
-            lift_angle_target = joints["lift_deg"]
-            rotate_angle_target = joints["rotate_deg"]
-            LOGGER.info(
-                "3D target '%s' → base=%d lift=%d rotate=%d (cam mm: %.0f, %.0f, %.0f)",
-                label or "object",
-                base_angle_target,
-                lift_angle_target,
-                rotate_angle_target,
-                target.camera_x_mm,
-                target.camera_y_mm,
-                target.camera_z_mm,
-            )
-        elif isinstance(target, VisionTarget) and target.image_x and self.calibration is not None:
-            # 2D-only fallback: steer base from horizontal offset
-            offset = (target.image_x - 0.5) * 200.0
-            base_angle_target = int(round(self.calibration.base_center_deg + offset * self.calibration.base_deg_per_mm_x))
+        if isinstance(target, VisionTarget):
+            if state.range_mm > 0 and target.range_mm <= 0:
+                target = replace(target, range_mm=state.range_mm)
+            joints = self._joints_for_pick_target(target, state=state, label=label)
+            if joints is not None:
+                base_angle_target = joints["base_deg"]
+                lift_angle_target = joints["lift_deg"]
+                rotate_angle_target = joints["rotate_deg"]
+            elif target.image_x and self.calibration is not None:
+                offset = (target.image_x - 0.5) * 200.0
+                base_angle_target = int(
+                    round(self.calibration.base_center_deg + offset * self.calibration.base_deg_per_mm_x)
+                )
 
         approach = self._command_from_pose(
             self.config.pickup_ready_pose,
