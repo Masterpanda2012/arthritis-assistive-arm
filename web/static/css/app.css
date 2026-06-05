@@ -1259,7 +1259,6 @@ body.app-ready .hero-lead {
 .motion-grid .btn:hover {
   border-color: color-mix(in srgb, var(--motion-accent) 50%, transparent);
   background: color-mix(in srgb, var(--motion-accent) 10%, rgba(0, 0, 0, 0.2));
-  border-color: color-mix(in srgb, var(--motion-accent) 50%, transparent);
 }
 
 .task-context {
