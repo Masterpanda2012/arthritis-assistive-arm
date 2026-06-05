@@ -116,7 +116,23 @@ const state = {
   radarLogical: { width: 500, height: 280 },
   helpLoaded: false,
   helpPayload: null,
+  liveStats: { range: null, session: null },
 };
+
+function flashEl(el, cls = "value-flash") {
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener("animationend", () => el.classList.remove(cls), { once: true });
+}
+
+function animateBar(el) {
+  if (!el) return;
+  el.classList.remove("bar-animate");
+  void el.offsetWidth;
+  el.classList.add("bar-animate");
+}
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -161,19 +177,11 @@ function setWizardStep(n) {
   }
 }
 
-function moveTabIndicator(tabEl) {
-  const indicator = $("tab-indicator");
-  if (!indicator || !tabEl) return;
-  indicator.style.width = `${tabEl.offsetWidth}px`;
-  indicator.style.transform = `translateX(${tabEl.offsetLeft}px)`;
-}
-
 function setActiveTab(name) {
-  document.querySelectorAll(".tab-nav .tab").forEach((tab) => {
+  document.querySelectorAll(".site-nav-links .tab, .tab-nav .tab").forEach((tab) => {
     const active = tab.dataset.tab === name;
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-selected", String(active));
-    if (active) moveTabIndicator(tab);
   });
   document.querySelectorAll(".tab-panel").forEach((panel) => {
     const active = panel.id === `panel-${name}`;
@@ -189,18 +197,22 @@ function setActiveTab(name) {
 }
 
 function bindTabs() {
-  document.querySelectorAll(".tab-nav .tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const name = tab.dataset.tab;
-      setActiveTab(name);
-      history.replaceState(null, "", name === "control" ? "/" : `/?tab=${name}`);
-      if (name === "gestures" && state.profile?.enable_gesture_input !== false) {
-        startCameraPreview();
-      }
-      if (name === "help") {
-        loadHelp(true);
-      }
-    });
+  const activate = (name) => {
+    setActiveTab(name);
+    history.replaceState(null, "", name === "control" ? "/" : `/?tab=${name}`);
+    if (name === "gestures" && state.profile?.enable_gesture_input !== false) {
+      startCameraPreview();
+    }
+    if (name === "help") loadHelp(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  document.querySelectorAll(".site-nav-links .tab, .tab-nav .tab").forEach((tab) => {
+    tab.addEventListener("click", () => activate(tab.dataset.tab));
+  });
+
+  document.querySelectorAll(".footer-link[data-tab]").forEach((link) => {
+    link.addEventListener("click", () => activate(link.dataset.tab));
   });
 }
 
@@ -229,8 +241,8 @@ function appendHelpCell(td, text) {
 
 function renderHelpSection(section, index) {
   const block = document.createElement("section");
-  block.className = "card help-section";
-  block.style.animationDelay = `${0.05 * index}s`;
+  block.className = "panel help-section help-reveal";
+  block.style.animationDelay = `${0.06 * index}s`;
   block.dataset.helpId = section.id || "";
 
   const h2 = document.createElement("h2");
@@ -353,8 +365,10 @@ async function loadHelp(force = false) {
   if (state.helpLoaded && !force) return;
   const root = $("help-sections");
   if (!state.helpLoaded && root && !root.querySelector(".help-section")) {
-    root.textContent = "Loading cheat sheet…";
-    root.firstChild?.classList?.add("help-loading");
+    const loading = document.createElement("p");
+    loading.className = "help-loading";
+    loading.textContent = "Loading cheat sheet…";
+    root.replaceChildren(loading);
   }
   try {
     const data = await api("/api/help");
@@ -400,7 +414,9 @@ function applyInputModes(profile) {
     $("gesture-badge").className = "badge badge-off";
   }
 
-  $("voice-card").classList.toggle("disabled-overlay", !voice);
+  const voiceUsable = voice || manual;
+  $("voice-card").classList.toggle("disabled-overlay", !voiceUsable);
+  updateVoiceMicPill(null, voice);
 
   const chips = $("input-chips");
   while (chips.firstChild) chips.removeChild(chips.firstChild);
@@ -408,9 +424,10 @@ function applyInputModes(profile) {
     ["Voice", voice],
     ["Gestures", gesture],
     ["Web / manual", manual],
-  ].forEach(([label, on]) => {
+  ].forEach(([label, on], i) => {
     const c = document.createElement("span");
-    c.className = `chip ${on ? "chip-on" : "chip-off"}`;
+    c.className = `chip chip-animate ${on ? "chip-on" : "chip-off"}`;
+    c.style.animationDelay = `${0.06 * i}s`;
     c.textContent = label;
     chips.appendChild(c);
   });
@@ -432,10 +449,10 @@ function refreshQuickCommands(profile) {
   const chips = $("quick-commands");
   if (!chips) return;
   while (chips.firstChild) chips.removeChild(chips.firstChild);
-  if (profile?.enable_voice_input === false) {
+  if (profile?.enable_voice_input === false && profile?.enable_manual_input === false) {
     const note = document.createElement("p");
-    note.className = "voice-feedback";
-    note.textContent = "Voice off — enable in Profile or use web buttons.";
+    note.className = "voice-feedback voice-error";
+    note.textContent = "Voice and web commands off — enable one in Profile.";
     chips.appendChild(note);
     return;
   }
@@ -460,10 +477,11 @@ function refreshQuickCommands(profile) {
 
 function bindControls() {
   const adl = $("adl-grid");
-  ADL.forEach((item) => {
+  ADL.forEach((item, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "btn task-btn";
+    b.className = "btn task-btn animate-in";
+    b.style.animationDelay = `${0.05 * i}s`;
     b.innerHTML = `<span class="task-icon">${item.icon}</span><span><strong>${item.label}</strong><small>${item.detail}</small></span>`;
     b.addEventListener("focus", () => showTaskContext(item));
     b.addEventListener("mouseenter", () => showTaskContext(item));
@@ -475,10 +493,11 @@ function bindControls() {
   });
 
   const motion = $("motion-grid");
-  MOTION.forEach((item) => {
+  MOTION.forEach((item, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "btn";
+    b.className = "btn animate-in";
+    b.style.animationDelay = `${0.03 * i}s`;
     b.textContent = item.label;
     b.addEventListener("click", () => sendCommand(item.intent, item.payload || {}));
     motion.appendChild(b);
@@ -510,18 +529,31 @@ async function sendCommand(intent, payload = {}, requiresConfirmation = false) {
   }
 }
 
+function setVoiceFeedback(message, kind = "") {
+  const el = $("voice-feedback");
+  if (!el) return;
+  el.textContent = message;
+  el.className = `voice-feedback${kind ? ` voice-${kind}` : ""}`;
+}
+
 async function sendSay(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
+  if (state.profile?.enable_voice_input === false && state.profile?.enable_manual_input === false) {
+    setVoiceFeedback("Enable Voice or Manual / web in Profile first.", "error");
+    toast("Voice and web commands are disabled in Profile", "err");
+    return;
+  }
   try {
+    setVoiceFeedback(`Sending “${trimmed}”…`, "listening");
     await api("/api/command/say", {
       method: "POST",
       body: JSON.stringify({ text: trimmed }),
     });
-    $("voice-feedback").textContent = `Sent: “${trimmed}”`;
     $("voice-text").value = "";
     toast("Command queued");
   } catch (e) {
+    setVoiceFeedback(e.message || "Could not send command.", "error");
     toast(e.message, "err");
   }
 }
@@ -531,30 +563,104 @@ function bindVoiceBar() {
   $("voice-text").addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendSay($("voice-text").value);
   });
+  setVoiceFeedback(
+    "Speak near your computer — open claw, get my pills, stop, yes/no. Say “robot” for longer phrases.",
+    "",
+  );
+}
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SpeechRecognition) {
-    $("btn-voice-say").addEventListener("click", () => {
-      const rec = new SpeechRecognition();
-      rec.lang = "en-US";
-      rec.onstart = () => {
-        $("btn-voice-say").classList.add("mic-active");
-      };
-      rec.onend = () => {
-        $("btn-voice-say").classList.remove("mic-active");
-      };
-      rec.onerror = () => {
-        $("btn-voice-say").classList.remove("mic-active");
-      };
-      rec.onresult = (ev) => {
-        const text = ev.results[0][0].transcript;
-        $("voice-text").value = text;
-        sendSay(text);
-      };
-      rec.start();
-    });
-  } else {
-    $("btn-voice-say").hidden = true;
+function updateVoiceMicPill(mic, voiceEnabled) {
+  const pill = $("voice-mic-pill");
+  if (!pill) return;
+  const enabled = voiceEnabled ?? state.profile?.enable_voice_input !== false;
+
+  if (!enabled) {
+    pill.className = "voice-mic-pill voice-mic-off";
+    pill.textContent = "Computer mic off — enable Voice in Profile";
+    return;
+  }
+
+  const mode = mic?.mode || "off";
+  const device = (mic?.device || "").trim();
+  const error = (mic?.error || "").trim();
+
+  if (mode === "listening") {
+    pill.className = "voice-mic-pill voice-mic-on";
+    pill.textContent = device ? `Computer mic · ${device}` : "Computer mic · listening";
+    return;
+  }
+
+  if (mode === "disabled") {
+    pill.className = "voice-mic-pill voice-mic-warn";
+    pill.textContent = "Computer mic paused — enable Voice in Profile";
+    return;
+  }
+
+  if (mode === "unavailable") {
+    pill.className = "voice-mic-pill voice-mic-off";
+    pill.textContent = error || "Computer mic unavailable";
+    return;
+  }
+
+  pill.className = "voice-mic-pill voice-mic-warn";
+  pill.textContent = "Computer mic — connecting…";
+}
+
+function updateVoice(voice) {
+  if (!voice) return;
+
+  updateVoiceMicPill(voice.mic);
+
+  const el = $("voice-feedback");
+  if (!el) return;
+
+  if (voice.mic?.mode === "unavailable" && voice.mic?.error) {
+    setVoiceFeedback(voice.mic.error, "error");
+    return;
+  }
+
+  if (voice.partial) {
+    const partial = voice.partial.replace(/^🎤\s*/, "").trim();
+    setVoiceFeedback(partial ? `Hearing… “${partial}”` : "Hearing you…", "listening");
+    return;
+  }
+
+  const heard = (voice.heard || "").trim();
+  const status = (voice.status || "").trim();
+  const intent = (voice.intent || "").replace(/_/g, " ").trim();
+  const fromMic = voice.source === "voice";
+
+  if (status === "listening" || (fromMic && status === "interpreting…")) {
+    setVoiceFeedback(heard || "Listening on computer mic…", "listening");
+    return;
+  }
+
+  if (status === "no match") {
+    setVoiceFeedback(
+      heard
+        ? `Didn’t understand “${heard}”. Try “get my pills”, “open claw”, or “stop”.`
+        : "Command not recognized — try a shorter phrase.",
+      "error",
+    );
+    return;
+  }
+
+  if (status === "disabled in profile") {
+    setVoiceFeedback("Voice/web commands are disabled — check Profile settings.", "error");
+    return;
+  }
+
+  if (intent && (status === "resolved" || status === "matched")) {
+    const prefix = fromMic ? "Heard" : "Sent";
+    setVoiceFeedback(`${prefix} “${heard}” → ${intent}`, "ok");
+    return;
+  }
+
+  if (heard && fromMic) {
+    setVoiceFeedback(
+      status ? `Heard “${heard}” (${status})` : `Heard “${heard}”`,
+      status === "matched" ? "ok" : "listening",
+    );
   }
 }
 
@@ -668,7 +774,10 @@ function fillProfile(data) {
   const name = data.display_name || "there";
   $("hero-greeting").textContent = `Welcome, ${name}`;
   const level = (data.motor_level || "moderate").replace(/^\w/, (c) => c.toUpperCase());
-  $("hero-sub").textContent = `${level} motor profile · speed ${data.default_speed_pct ?? 30}%`;
+  const speed = data.default_speed_pct ?? 30;
+  $("hero-sub").textContent = `${level} motor profile · tuned for comfortable daily reach`;
+  const statSpeed = $("stat-speed");
+  if (statSpeed) statSpeed.textContent = `${speed}%`;
 
   fillGuide(data.gesture_guide);
   fillCatalogue(data.custom_gestures || []);
@@ -812,18 +921,9 @@ function bindStudio() {
     }
   });
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SpeechRecognition) {
-    $("btn-voice-describe").addEventListener("click", () => {
-      const rec = new SpeechRecognition();
-      rec.lang = "en-US";
-      rec.onresult = (ev) => {
-        $("gesture-describe").value = ev.results[0][0].transcript;
-      };
-      rec.start();
-    });
-  } else {
-    $("btn-voice-describe").hidden = true;
+  const describeVoice = $("btn-voice-describe");
+  if (describeVoice) {
+    describeVoice.hidden = true;
   }
 }
 
@@ -835,10 +935,21 @@ function updateArm(arm) {
     const max = map[j];
     const min = mins[j];
     const pct = Math.max(0, Math.min(100, ((v - min) / (max - min)) * 100));
-    $(`m-${j}`).style.width = `${pct}%`;
+    const bar = $(`m-${j}`);
+    const prev = parseFloat(bar?.dataset.pct || "NaN");
+    bar.style.width = `${pct}%`;
+    bar.dataset.pct = String(pct);
+    if (!Number.isNaN(prev) && Math.abs(prev - pct) > 0.5) animateBar(bar);
     $(`v-${j}`).textContent = `${v}°`;
   });
-  $("v-range").textContent = arm.range_mm > 0 ? String(arm.range_mm) : "—";
+  const rangeText = arm.range_mm > 0 ? String(arm.range_mm) : "—";
+  $("v-range").textContent = rangeText;
+  const statRange = $("stat-range");
+  if (statRange) {
+    if (state.liveStats.range !== rangeText) flashEl(statRange);
+    statRange.textContent = rangeText;
+    state.liveStats.range = rangeText;
+  }
 }
 
 function updateActivity(items) {
@@ -850,10 +961,13 @@ function updateActivity(items) {
     feed.appendChild(li);
     return;
   }
-  items.slice().reverse().forEach((ev) => {
+  items.slice().reverse().forEach((ev, i) => {
     const li = document.createElement("li");
+    if (i === 0) li.classList.add("activity-new");
     const span = document.createElement("span");
     span.className = "src";
+    const src = (ev.source || "?").toLowerCase();
+    span.dataset.src = src;
     span.textContent = ev.source || "?";
     li.appendChild(span);
     li.appendChild(document.createTextNode(` ${ev.text || ev.kind || ""}`));
@@ -877,9 +991,10 @@ function updateDiversity(diversity) {
   if (!diversity) return;
 
   const covered = new Set(diversity.covered || []);
-  FAMILIES.forEach((f) => {
+  FAMILIES.forEach((f, i) => {
     const pill = document.createElement("span");
     pill.className = `diversity-pill ${covered.has(f) ? "done" : ""}`;
+    pill.style.animationDelay = `${0.05 * i}s`;
     pill.textContent = f;
     track.appendChild(pill);
   });
@@ -911,6 +1026,13 @@ function updateSmart(smart, fallback) {
   } else {
     pill.textContent = `${smart.command_count} moves`;
     pill.className = "pill pill-ok";
+  }
+  const statSession = $("stat-session");
+  if (statSession) {
+    const count = String(smart.command_count ?? 0);
+    if (state.liveStats.session !== count) flashEl(statSession);
+    statSession.textContent = count;
+    state.liveStats.session = count;
   }
 
   const tip = $("fallback-tip");
@@ -1130,15 +1252,15 @@ function drawRadarFrame() {
   const maxDistance = 800; // mm
 
   // Draw grid concentric semicircle rings
-  radarCtx.strokeStyle = "rgba(88, 214, 183, 0.15)";
+  radarCtx.strokeStyle = "rgba(107, 158, 200, 0.18)";
   radarCtx.lineWidth = 1;
   [0.25, 0.5, 0.75, 1.0].forEach((pct) => {
     radarCtx.beginPath();
     radarCtx.arc(centerX, centerY, maxRadius * pct, Math.PI, 0);
     radarCtx.stroke();
     
-    radarCtx.fillStyle = "rgba(169, 176, 170, 0.55)";
-    radarCtx.font = "9px DM Sans";
+    radarCtx.fillStyle = "rgba(139, 145, 158, 0.7)";
+    radarCtx.font = "500 9px Inter, sans-serif";
     radarCtx.fillText(`${Math.round(maxDistance * pct)}mm`, centerX + 6, centerY - maxRadius * pct + 3);
   });
 
@@ -1152,8 +1274,8 @@ function drawRadarFrame() {
     radarCtx.lineTo(x, y);
     radarCtx.stroke();
     
-    radarCtx.fillStyle = "rgba(169, 176, 170, 0.55)";
-    radarCtx.font = "9px DM Sans";
+    radarCtx.fillStyle = "rgba(139, 145, 158, 0.7)";
+    radarCtx.font = "500 9px Inter, sans-serif";
     const lx = centerX + (maxRadius + 14) * Math.cos(rad);
     const ly = centerY - (maxRadius + 14) * Math.sin(rad);
     radarCtx.textAlign = "center";
@@ -1161,7 +1283,7 @@ function drawRadarFrame() {
   });
 
   // Draw outer border
-  radarCtx.strokeStyle = "rgba(88, 214, 183, 0.35)";
+  radarCtx.strokeStyle = "rgba(107, 158, 200, 0.35)";
   radarCtx.lineWidth = 1.5;
   radarCtx.beginPath();
   radarCtx.arc(centerX, centerY, maxRadius, Math.PI, 0);
@@ -1174,14 +1296,14 @@ function drawRadarFrame() {
   radarCtx.arc(centerX, centerY, maxRadius, -Math.PI + radarSweepAngle - 0.22, -Math.PI + radarSweepAngle);
   radarCtx.closePath();
   const grad = radarCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
-  grad.addColorStop(0, "rgba(88, 214, 183, 0.16)");
-  grad.addColorStop(1, "rgba(88, 214, 183, 0.0)");
+  grad.addColorStop(0, "rgba(107, 158, 200, 0.14)");
+  grad.addColorStop(1, "rgba(107, 158, 200, 0.0)");
   radarCtx.fillStyle = grad;
   radarCtx.fill();
   radarCtx.restore();
 
   // Draw sweep line
-  radarCtx.strokeStyle = "rgba(88, 214, 183, 0.45)";
+  radarCtx.strokeStyle = "rgba(107, 158, 200, 0.5)";
   radarCtx.lineWidth = 1.5;
   radarCtx.beginPath();
   radarCtx.moveTo(centerX, centerY);
@@ -1191,22 +1313,22 @@ function drawRadarFrame() {
   // Draw arm heading ray if connected
   if (state.arm && typeof state.arm.base === "number") {
     const armRad = (180 - state.arm.base) * Math.PI / 180;
-    radarCtx.strokeStyle = "rgba(183, 166, 255, 0.65)";
+    radarCtx.strokeStyle = "rgba(109, 184, 154, 0.55)";
     radarCtx.lineWidth = 2.5;
     radarCtx.beginPath();
     radarCtx.moveTo(centerX, centerY);
     radarCtx.lineTo(centerX + maxRadius * 0.9 * Math.cos(armRad), centerY - maxRadius * 0.9 * Math.sin(armRad));
     radarCtx.stroke();
     
-    radarCtx.fillStyle = "#b7a6ff";
+    radarCtx.fillStyle = "#6db89a";
     radarCtx.beginPath();
     radarCtx.arc(centerX + maxRadius * 0.9 * Math.cos(armRad), centerY - maxRadius * 0.9 * Math.sin(armRad), 4.5, 0, Math.PI * 2);
     radarCtx.fill();
   }
 
   // Draw center base node
-  radarCtx.fillStyle = "#1e2220";
-  radarCtx.strokeStyle = "rgba(88, 214, 183, 0.7)";
+  radarCtx.fillStyle = "#0f1117";
+  radarCtx.strokeStyle = "rgba(107, 158, 200, 0.55)";
   radarCtx.lineWidth = 2.5;
   radarCtx.beginPath();
   radarCtx.arc(centerX, centerY, 8, 0, Math.PI * 2);
@@ -1225,33 +1347,33 @@ function drawRadarFrame() {
     const isLit = sweepDiff < 0.25;
 
     if (hoveredObj === obj || isLit) {
-      radarCtx.fillStyle = "rgba(88, 214, 183, 0.3)";
+      radarCtx.fillStyle = "rgba(107, 158, 200, 0.22)";
       radarCtx.beginPath();
       radarCtx.arc(ox, oy, 15, 0, Math.PI * 2);
       radarCtx.fill();
     }
 
     // Node core
-    radarCtx.fillStyle = hoveredObj === obj ? "#58d6b7" : "rgba(88, 214, 183, 0.85)";
+    radarCtx.fillStyle = hoveredObj === obj ? "#6b9ec8" : "rgba(109, 184, 154, 0.85)";
     radarCtx.beginPath();
     radarCtx.arc(ox, oy, 6, 0, Math.PI * 2);
     radarCtx.fill();
 
     // Node border
-    radarCtx.strokeStyle = "rgba(88, 214, 183, 0.95)";
+    radarCtx.strokeStyle = "rgba(107, 158, 200, 0.7)";
     radarCtx.lineWidth = 1.5;
     radarCtx.beginPath();
     radarCtx.arc(ox, oy, 9, 0, Math.PI * 2);
     radarCtx.stroke();
 
     // Text labels
-    radarCtx.fillStyle = "#f4f0e8";
-    radarCtx.font = "bold 10px DM Sans";
+    radarCtx.fillStyle = "#f4f4f5";
+    radarCtx.font = "600 10px Inter, sans-serif";
     radarCtx.textAlign = "center";
     radarCtx.fillText(obj.label, ox, oy - 15);
 
-    radarCtx.fillStyle = "rgba(169, 176, 170, 0.9)";
-    radarCtx.font = "8px DM Sans";
+    radarCtx.fillStyle = "rgba(139, 145, 158, 0.9)";
+    radarCtx.font = "8px Inter, sans-serif";
     radarCtx.fillText(`${obj.distance_mm}mm (${Math.round(obj.confidence * 100)}%)`, ox, oy + 18);
   }
 }
@@ -1279,6 +1401,7 @@ function applyLivePayload(msg) {
   updatePending(msg.pending);
   updateDiversity(msg.gesture_diversity);
   updateSmart(msg.smart, msg.input_fallback);
+  updateVoice(msg.voice);
   updateCapture(msg.gesture_capture);
   updateCameraStatus(msg.camera);
   updateDepthStatus(msg.vision_pipeline);
@@ -1307,7 +1430,8 @@ function connectLive() {
 
   ws.onopen = () => {
     live.textContent = "Live";
-    live.className = "pill pill-ok";
+    live.className = "pill pill-ok pill-live";
+    flashEl(live, "value-flash");
   };
   ws.onclose = () => {
     live.textContent = "Reconnecting…";
@@ -1336,13 +1460,9 @@ async function init() {
   initRadar();
 
   requestAnimationFrame(() => {
-    const activeTab = document.querySelector(".tab-nav .tab.active");
-    moveTabIndicator(activeTab);
     document.body.classList.add("app-ready");
   });
   window.addEventListener("resize", () => {
-    const activeTab = document.querySelector(".tab-nav .tab.active");
-    moveTabIndicator(activeTab);
     const canvas = $("radar-canvas");
     if (canvas) radarCtx = setupHiDpiCanvas(canvas, 500, 280);
   });

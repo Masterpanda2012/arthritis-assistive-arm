@@ -324,14 +324,27 @@ class LLMIntentAgent:
             return all(w in tokens for w in words)
 
         pick_match = re.search(
-            r"\b(?:pick\s*up|grab|fetch|bring(?:\s+me)?)\s+(?:the\s+|an?\s+)?([a-z][a-z0-9_-]+)",
+            r"\b(?:pick\s*up|grab|fetch|get|bring)\s+(?:me\s+)?(?:my\s+|the\s+|an?\s+)?([a-z][a-z0-9 _-]+)",
             normalized,
         )
         if pick_match:
+            label = pick_match.group(1).strip().replace(" ", " ")
+            # Map everyday words to vision labels.
+            label_map = {
+                "pills": "bottle",
+                "pill": "bottle",
+                "medicine": "bottle",
+                "medication": "bottle",
+                "remote": "remote",
+                "phone": "cell phone",
+                "water": "bottle",
+                "drink": "bottle",
+            }
+            label = label_map.get(label, label)
             return ActionRequest(
                 source=source,
                 intent="pick_object",
-                payload={"label": pick_match.group(1)},
+                payload={"label": label},
                 requires_confirmation=True,
             )
 

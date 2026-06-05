@@ -33,28 +33,28 @@ from tkinter import ttk
 
 
 COLORS = {
-    "bg":            "#0b1220",   # page background
-    "panel":         "#111a2b",   # header strip
-    "card":          "#16213a",   # card surfaces
-    "card_alt":      "#1c2a47",   # hover / pressed cards
-    "border":        "#243355",
-    "border_soft":   "#1b2742",
-    "text":          "#e6edf9",
-    "muted":         "#8691a8",
-    "dim":           "#566079",
-    "primary":       "#3b82f6",
-    "primary_hover": "#60a5fa",
-    "success":       "#10b981",
-    "success_hover": "#22c58d",
-    "info":          "#8b5cf6",
-    "info_hover":    "#a78bfa",
-    "warning":       "#f59e0b",
-    "warning_hover": "#fbbf24",
-    "danger":        "#ef4444",
-    "danger_hover":  "#f87171",
-    "accent":        "#22d3ee",
-    "track":         "#22304f",
-    "track_fill":    "#22d3ee",
+    "bg":            "#030508",
+    "panel":         "#0c0e12",
+    "card":          "#0f1117",
+    "card_alt":      "#141820",
+    "border":        "#2a2f3a",
+    "border_soft":   "#1a1e26",
+    "text":          "#f4f4f5",
+    "muted":         "#8b919e",
+    "dim":           "#6b7280",
+    "primary":       "#6b9ec8",
+    "primary_hover": "#8bb8dc",
+    "success":       "#5a9a7a",
+    "success_hover": "#6db89a",
+    "info":          "#8b9cb8",
+    "info_hover":    "#a3b4cc",
+    "warning":       "#c9a05c",
+    "warning_hover": "#d4b06e",
+    "danger":        "#c45c6a",
+    "danger_hover":  "#d06878",
+    "accent":        "#6b9ec8",
+    "track":         "#1a1e26",
+    "track_fill":    "#6b9ec8",
     # Per-source tints for the unified activity feed.
     "source_voice":   "#22d3ee",
     "source_gesture": "#a78bfa",
@@ -225,11 +225,7 @@ class ServoBar:
 class Panel:
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.title(
-            "Assistive Arm — Arthritis Support"
-            if ACCESSIBILITY_MODE
-            else "CREATE-TKS — Robot Arm Control"
-        )
+        self.root.title("Assistive Arm — Control Center")
         self.root.configure(bg=COLORS["bg"])
         self.root.geometry("980x1020")
         self.root.minsize(900, 880)
@@ -361,18 +357,25 @@ class Panel:
         title_wrap.pack(side="left")
         tk.Label(
             title_wrap,
-            text="CREATE-TKS",
+            text="Assistive Arm",
             fg=COLORS["text"],
             bg=COLORS["panel"],
             font=("Helvetica Neue", 19, "bold"),
         ).pack(side="left")
         tk.Label(
             title_wrap,
-            text="  Adaptive Robot Arm",
+            text="  ·  Control Center",
             fg=COLORS["muted"],
             bg=COLORS["panel"],
             font=("Helvetica Neue", 13),
         ).pack(side="left")
+        tk.Label(
+            header,
+            text="Legacy desktop panel — for the modern UI run: python main.py --web",
+            fg=COLORS["accent"],
+            bg=COLORS["panel"],
+            font=("Helvetica Neue", 11),
+        ).pack(anchor="w", padx=22, pady=(4, 0))
 
         self.estop_badge = self._make_badge(row, "E-STOP off", "success")
         self.estop_badge.pack(side="right")
@@ -1180,41 +1183,64 @@ class Panel:
         self.root.bind("<Up>", guarded(lambda _e: self._send_by_intent("lift_up")))
         self.root.bind("<Down>", guarded(lambda _e: self._send_by_intent("lift_down")))
 
-    def _make_button(self, parent: tk.Widget, btn: PanelButton, *, big: bool = False, large: bool = False) -> tk.Button:
+    def _make_button(self, parent: tk.Widget, btn: PanelButton, *, big: bool = False, large: bool = False) -> tk.Widget:
+        """Frame+Label buttons — macOS Tk ignores bg on native tk.Button."""
         bg = COLORS[btn.accent]
         hover = COLORS[f"{btn.accent}_hover"]
         if big:
             font = ("Helvetica Neue", 17, "bold")
+            pad_y = 18
         elif large:
             font = ("Helvetica Neue", 14, "bold")
+            pad_y = 14
         else:
             font = ("Helvetica Neue", 12, "bold")
-        widget = tk.Button(
-            parent,
-            text=btn.label,
-            fg="white",
-            bg=bg,
-            activebackground=hover,
-            activeforeground="white",
-            font=font,
-            relief="flat",
-            bd=0,
-            highlightthickness=0,
-            cursor="hand2",
-            command=lambda b=btn: self._send(b),
-        )
-        widget.configure(padx=16 if large else 12, pady=12 if large else 8)
-        widget.bind("<Enter>", lambda _e, w=widget, c=hover, h=btn.hint: self._on_hover(w, c, h))
-        widget.bind("<Leave>", lambda _e, w=widget, c=bg: self._on_unhover(w, c))
-        return widget
+            pad_y = 10
+        fg = "#030508" if btn.accent in {"primary", "success", "warning"} else "#f4f4f5"
 
-    def _on_hover(self, widget: tk.Button, color: str, hint: str) -> None:
-        widget.configure(bg=color)
+        shell = tk.Frame(
+            parent,
+            bg=bg,
+            highlightbackground=COLORS["border"],
+            highlightthickness=1,
+            cursor="hand2",
+        )
+        label = tk.Label(
+            shell,
+            text=btn.label,
+            fg=fg,
+            bg=bg,
+            font=font,
+            padx=16 if large else 12,
+            pady=pad_y,
+            cursor="hand2",
+        )
+        label.pack(fill="both", expand=True)
+
+        def activate(_event=None, b=btn) -> None:
+            self._send(b)
+
+        for w in (shell, label):
+            w.bind("<Button-1>", activate)
+            w.bind("<Enter>", lambda _e, s=shell, lb=label, c=hover, h=btn.hint: self._on_hover(s, lb, c, h))
+            w.bind("<Leave>", lambda _e, s=shell, lb=label, c=bg: self._on_unhover(s, lb, c))
+        return shell
+
+    def _on_hover(self, shell: tk.Widget, label: tk.Label, color: str, hint: str) -> None:
+        shell.configure(bg=color)
+        label.configure(bg=color)
         if hint and self.feedback_label is not None:
             self.feedback_label.configure(text=hint, fg=COLORS["muted"])
 
-    def _on_unhover(self, widget: tk.Button, color: str) -> None:
-        widget.configure(bg=color)
+    def _on_unhover(self, shell: tk.Widget, label: tk.Label, color: str) -> None:
+        shell.configure(bg=color)
+        label.configure(bg=color)
+
+    def _restore_button_bg(self, shell: tk.Widget, color: str) -> None:
+        shell.configure(bg=color)
+        for child in shell.winfo_children():
+            if isinstance(child, tk.Label):
+                child.configure(bg=color)
 
     # ---------- actions ----------
 
@@ -1236,8 +1262,11 @@ class Panel:
         widget = self.buttons.get(btn.label)
         if widget is not None:
             original = widget.cget("bg")
+            for child in widget.winfo_children():
+                if isinstance(child, tk.Label):
+                    child.configure(bg=COLORS["accent"])
             widget.configure(bg=COLORS["accent"])
-            widget.after(180, lambda w=widget, c=original: w.configure(bg=c))
+            widget.after(180, lambda w=widget, c=original: self._restore_button_bg(w, c))
 
     def _payload_for_button(self, btn: PanelButton) -> dict:
         payload = dict(btn.payload)

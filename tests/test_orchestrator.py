@@ -151,3 +151,30 @@ class OrchestratorExecutionTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(record["corrections"], 1)
             self.assertEqual(record["commands"], 1)
             self.assertEqual(record["final_distance_cm"], 2.5)
+
+
+class SourceEnablementTests(unittest.TestCase):
+    def test_web_voice_allowed_when_only_voice_enabled(self) -> None:
+        from ai.user_profile import UserProfile, MotorLevel
+
+        config = load_config()
+        app = AdaptiveRobotArmApp(config)
+        app.user_profile = UserProfile(
+            motor_level=MotorLevel.MODERATE,
+            enable_voice_input=True,
+            enable_manual_input=False,
+        )
+        self.assertTrue(app.is_source_enabled("web"))
+        self.assertFalse(app.is_source_enabled("panel"))
+
+    def test_web_blocked_when_voice_and_manual_off(self) -> None:
+        from ai.user_profile import UserProfile, MotorLevel
+
+        config = load_config()
+        app = AdaptiveRobotArmApp(config)
+        app.user_profile = UserProfile(
+            motor_level=MotorLevel.MODERATE,
+            enable_voice_input=False,
+            enable_manual_input=False,
+        )
+        self.assertFalse(app.is_source_enabled("web"))

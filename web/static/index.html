@@ -4,297 +4,352 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Assistive Arm — Control Center</title>
+  <meta name="description" content="Gentle reach for everyday independence — voice, gesture, and web control for your assistive arm." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/app.css?v=20260609" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/app.css?v=20260615" />
 </head>
 <body class="app-loaded">
-  <div class="bg-glow" aria-hidden="true"></div>
-  <div class="bg-orbs" aria-hidden="true">
-    <span class="orb orb-teal"></span>
-    <span class="orb orb-violet"></span>
-    <span class="orb orb-amber"></span>
-  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-vignette" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-blue" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-sage" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-violet" aria-hidden="true"></div>
 
-  <header class="app-header">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <div>
-        <h1>Assistive Arm</h1>
-        <p class="tagline">Gentle reach for everyday independence</p>
+  <div class="site">
+    <nav class="site-nav" aria-label="Site navigation">
+      <div class="site-nav-inner">
+        <a class="site-logo" href="/" aria-label="Assistive Arm home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="site-logo-text">Assistive Arm</span>
+        </a>
+        <div class="site-nav-links" role="tablist" aria-label="Main sections">
+          <button type="button" class="tab active" id="tab-control" data-tab="control" role="tab" aria-controls="panel-control" aria-selected="true">Control</button>
+          <button type="button" class="tab" id="tab-gestures" data-tab="gestures" role="tab" aria-controls="panel-gestures" aria-selected="false">Gestures</button>
+          <button type="button" class="tab" id="tab-profile" data-tab="profile" role="tab" aria-controls="panel-profile" aria-selected="false">Profile</button>
+          <button type="button" class="tab" id="tab-help" data-tab="help" role="tab" aria-controls="panel-help" aria-selected="false">Help</button>
+        </div>
+        <div class="site-nav-status" role="status" aria-live="polite">
+          <span id="serial-pill" class="pill pill-muted">Serial —</span>
+          <span id="live-pill" class="pill pill-muted">Connecting…</span>
+          <span id="smart-pill" class="pill pill-muted">Session —</span>
+        </div>
       </div>
-    </div>
-    <div class="header-actions">
-      <div class="status-pills" role="status" aria-live="polite">
-        <span id="serial-pill" class="pill pill-muted">Serial —</span>
-        <span id="live-pill" class="pill pill-muted">Connecting…</span>
-        <span id="smart-pill" class="pill pill-muted">Session —</span>
+    </nav>
+
+    <header class="site-hero">
+      <div class="site-hero-inner hero-split">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Live console · Research prototype</p>
+          <h1 class="hero-title" id="hero-greeting">Welcome back</h1>
+          <p class="hero-lead" id="hero-sub">Your profile is loaded and ready.</p>
+        </div>
+        <div class="hero-aside">
+          <div class="hero-stats" aria-label="Live session stats">
+            <div class="stat-tile">
+              <span class="stat-value" id="stat-range">—</span>
+              <span class="stat-label">LiDAR range</span>
+              <span class="stat-unit">mm</span>
+            </div>
+            <div class="stat-tile">
+              <span class="stat-value" id="stat-speed">30%</span>
+              <span class="stat-label">Move speed</span>
+            </div>
+            <div class="stat-tile">
+              <span class="stat-value" id="stat-session">0</span>
+              <span class="stat-label">Session moves</span>
+            </div>
+          </div>
+          <div class="hero-meta">
+            <p class="hero-meta-label">Active inputs &amp; coverage</p>
+            <div class="hero-chips" id="input-chips" aria-label="Active input methods"></div>
+            <div class="diversity-track" id="diversity-track" aria-label="Movement coverage"></div>
+          </div>
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <section class="hero-strip card">
-    <div class="hero-left">
-      <p class="hero-greeting" id="hero-greeting">Welcome back</p>
-      <p class="hero-sub" id="hero-sub">Your profile is loaded and ready.</p>
-    </div>
-    <div class="hero-chips" id="input-chips"></div>
-    <div class="diversity-track" id="diversity-track" aria-label="Movement coverage"></div>
-  </section>
+    <div id="alert-banner" class="alert-banner hidden" role="alert"></div>
 
-  <div id="alert-banner" class="alert-banner hidden" role="alert"></div>
-
-  <nav class="tab-nav" aria-label="Main sections" role="tablist">
-    <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
-    <button type="button" class="tab active" id="tab-control" data-tab="control" role="tab" aria-controls="panel-control" aria-selected="true">Control</button>
-    <button type="button" class="tab" id="tab-gestures" data-tab="gestures" role="tab" aria-controls="panel-gestures" aria-selected="false">Gestures</button>
-    <button type="button" class="tab" id="tab-profile" data-tab="profile" role="tab" aria-controls="panel-profile" aria-selected="false">Profile</button>
-    <button type="button" class="tab" id="tab-help" data-tab="help" role="tab" aria-controls="panel-help" aria-selected="false">Help</button>
-  </nav>
-
-  <div class="app-shell">
-    <main class="tab-panels">
-      <!-- CONTROL -->
-      <section id="panel-control" class="tab-panel active" role="tabpanel" aria-labelledby="tab-control">
-        <div class="card controls-card" id="controls-card">
-          <div class="card-head row-head">
-            <div>
-              <h2>Control deck</h2>
-              <p>Daily tasks and gentle motion — large buttons for stiff or trembling hands.</p>
+    <div class="site-body app-shell">
+      <main class="site-content tab-panels">
+        <!-- CONTROL -->
+        <section id="panel-control" class="tab-panel page-view active" role="tabpanel" aria-labelledby="tab-control">
+          <div class="control-stack" id="controls-card">
+            <div class="panel tasks-card">
+              <header class="block-header row-head">
+                <div>
+                  <span class="block-kicker">01 · Reach</span>
+                  <h2>Daily tasks</h2>
+                  <p>Large tap targets — every pick confirms before the arm moves.</p>
+                </div>
+                <span id="manual-badge" class="badge badge-ok">Manual on</span>
+              </header>
+              <p id="pending-banner" class="pending hidden"></p>
+              <p id="diversity-hint" class="diversity-hint"></p>
+              <div class="adl-grid" id="adl-grid"></div>
+              <p id="task-context" class="task-context">Choose a daily task to see the target and confirmation plan.</p>
             </div>
-            <span id="manual-badge" class="badge badge-ok">Manual on</span>
-          </div>
-          <p id="pending-banner" class="pending hidden"></p>
-          <p id="diversity-hint" class="diversity-hint"></p>
-          <p class="section-label">Daily tasks</p>
-          <div class="adl-grid" id="adl-grid"></div>
-          <p id="task-context" class="task-context">Choose a daily task to see the target and confirmation plan.</p>
-          <p class="section-label">Fine motion</p>
-          <div class="motion-grid" id="motion-grid"></div>
-          <button type="button" class="btn btn-danger btn-wide" id="btn-estop">Emergency stop</button>
-          <div class="confirm-row">
-            <button type="button" class="btn btn-success" data-intent="confirm_yes">Yes</button>
-            <button type="button" class="btn btn-ghost" data-intent="confirm_no">No</button>
-            <button type="button" class="btn btn-ghost" data-intent="home">Home</button>
-          </div>
-        </div>
 
-        <div class="card radar-card" id="radar-card">
-          <div class="card-head row-head">
-            <div>
-              <h2>Workspace radar</h2>
-              <p>Visual map of detected objects. Click any item to command a reach.</p>
-            </div>
-            <span id="radar-status-badge" class="badge badge-ok">Scanning</span>
-            <span id="depth-status-badge" class="badge badge-off" title="Depth + LiDAR ranging">Depth —</span>
-          </div>
-          <div class="radar-container">
-            <canvas id="radar-canvas" width="500" height="280"></canvas>
-          </div>
-        </div>
-
-        <div class="card voice-card" id="voice-card">
-          <div class="card-head">
-            <h2>Say what you need</h2>
-            <p>Type or speak plain English — same brain as the microphone on the arm.</p>
-          </div>
-          <div class="voice-bar">
-            <input type="text" id="voice-text" placeholder="e.g. get my pills · bring the remote · stop" autocomplete="off" />
-            <button type="button" class="btn btn-icon" id="btn-voice-say" title="Speak command" aria-label="Speak command">Mic</button>
-            <button type="button" class="btn btn-primary" id="btn-send-say">Send</button>
-          </div>
-          <div class="command-chips" id="quick-commands" aria-label="Quick voice commands"></div>
-          <p id="voice-feedback" class="voice-feedback"></p>
-        </div>
-      </section>
-
-      <!-- GESTURES -->
-      <section id="panel-gestures" class="tab-panel" role="tabpanel" aria-labelledby="tab-gestures">
-        <div class="card studio-card" id="studio-card">
-          <div class="card-head row-head">
-            <div>
-              <h2>Gesture studio</h2>
-              <p>Describe → show → save to your personal catalogue.</p>
-            </div>
-            <span id="gesture-badge" class="badge badge-ok">Camera on</span>
-          </div>
-
-          <ol class="wizard-steps" id="wizard-steps">
-            <li class="step active" data-step="1">Describe</li>
-            <li class="step" data-step="2">Show</li>
-            <li class="step" data-step="3">Save</li>
-          </ol>
-
-          <div class="studio-step" id="step-describe">
-            <textarea id="gesture-describe" rows="3" placeholder="When I make a fist, close the claw"></textarea>
-            <div class="studio-actions">
-              <button type="button" class="btn btn-ghost" id="btn-voice-describe">Speak</button>
-              <button type="button" class="btn btn-primary" id="btn-interpret">Understand</button>
-            </div>
-          </div>
-
-          <div id="interpret-result" class="interpret-box hidden"></div>
-
-          <div class="studio-step hidden" id="step-capture">
-            <div class="camera-panel" id="camera-panel">
-              <img
-                id="camera-preview"
-                class="camera-preview hidden"
-                alt="Live webcam preview for gesture teaching"
-                width="960"
-                height="540"
-              />
-              <div id="camera-placeholder" class="camera-placeholder">
-                <p id="camera-hint">Starting camera…</p>
-                <p class="camera-help">Grant <strong>Camera</strong> to Terminal or Cursor in System Settings → Privacy &amp; Security.</p>
+            <div class="panel motion-card">
+              <header class="block-header compact-head">
+                <span class="block-kicker">Fine motion</span>
+                <h2>Joint controls</h2>
+              </header>
+              <div class="motion-grid" id="motion-grid"></div>
+              <div class="safety-row">
+                <button type="button" class="btn btn-danger" id="btn-estop">Emergency stop</button>
+                <div class="confirm-row">
+                  <button type="button" class="btn btn-success" data-intent="confirm_yes">Yes</button>
+                  <button type="button" class="btn btn-ghost" data-intent="confirm_no">No</button>
+                  <button type="button" class="btn btn-ghost" data-intent="home">Home</button>
+                </div>
               </div>
             </div>
-            <p id="capture-status">Show your gesture to the webcam.</p>
-            <div class="capture-bar"><i id="capture-fill"></i></div>
-            <div class="studio-actions">
-              <button type="button" class="btn btn-primary" id="btn-capture-start">Start capture</button>
-              <button type="button" class="btn btn-ghost hidden" id="btn-capture-stop">Finish</button>
-              <button type="button" class="btn btn-success hidden" id="btn-save-gesture">Save to catalogue</button>
+          </div>
+
+          <div class="panel radar-card" id="radar-card">
+            <header class="block-header row-head">
+              <div>
+                <span class="block-kicker">02 · Workspace</span>
+                <h2>Radar map</h2>
+                <p>Detected objects around the arm — click to command a reach.</p>
+              </div>
+              <div class="badge-group">
+                <span id="radar-status-badge" class="badge badge-ok">Scanning</span>
+                <span id="depth-status-badge" class="badge badge-off" title="Depth + LiDAR ranging">Depth —</span>
+              </div>
+            </header>
+            <div class="radar-container">
+              <canvas id="radar-canvas" width="500" height="280"></canvas>
             </div>
           </div>
 
-          <div class="catalogue">
-            <h3>Your catalogue <span id="catalogue-count" class="count-badge">0</span></h3>
-            <ul id="custom-catalogue" class="catalogue-list"></ul>
+          <div class="panel voice-card" id="voice-card">
+            <header class="block-header">
+              <span class="block-kicker">03 · Voice</span>
+              <h2>Say what you need</h2>
+              <p>Speak to your computer — the app listens through your <strong>system microphone</strong> (Vosk). Type below if you prefer.</p>
+            </header>
+            <div class="voice-mic-row" role="status" aria-live="polite">
+              <span id="voice-mic-pill" class="voice-mic-pill">Computer mic — starting…</span>
+            </div>
+            <div class="voice-bar">
+              <input type="text" id="voice-text" placeholder="Or type: get my pills · bring the remote · stop" autocomplete="off" />
+              <button type="button" class="btn btn-primary" id="btn-send-say">Send</button>
+            </div>
+            <div class="command-chips" id="quick-commands" aria-label="Quick voice commands"></div>
+            <p id="voice-feedback" class="voice-feedback"></p>
           </div>
-        </div>
+        </section>
 
-        <div class="card guide-card">
-          <div class="card-head">
-            <h2>Built-in gestures</h2>
-            <p class="quit-note">Hold <strong>peace sign</strong> 1.5s to quit · <strong>OK sign</strong> or <strong>thumbs up</strong> = yes · <strong>Palm down</strong> = home</p>
-          </div>
-          <ul id="gesture-guide" class="guide-grid"></ul>
-        </div>
-      </section>
+        <!-- GESTURES -->
+        <section id="panel-gestures" class="tab-panel page-view" role="tabpanel" aria-labelledby="tab-gestures" hidden>
+          <div class="panel studio-card" id="studio-card">
+            <header class="block-header row-head">
+              <div>
+                <span class="block-kicker">Gesture studio</span>
+                <h2>Teach a personal sign</h2>
+                <p>Describe → show → save to your catalogue.</p>
+              </div>
+              <span id="gesture-badge" class="badge badge-ok">Camera on</span>
+            </header>
 
-      <!-- PROFILE -->
-      <section id="panel-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-profile">
-        <form id="profile-form" class="card profile-card">
-          <div class="card-head">
-            <h2>Your profile</h2>
-            <p>Saved on this device — changes apply to the running arm immediately.</p>
-          </div>
-          <fieldset class="input-modes preset-modes">
-            <legend>Comfort presets</legend>
-            <div class="preset-grid" id="preset-grid"></div>
-          </fieldset>
-          <div class="profile-grid">
-            <label class="field">
-              <span>Display name</span>
-              <input type="text" id="display-name" placeholder="e.g. Grandpa" autocomplete="name" />
-            </label>
-            <label class="field">
-              <span>Motor profile</span>
-              <select id="motor-level">
-                <option value="early">Early — more speed &amp; gestures</option>
-                <option value="moderate">Moderate — balanced</option>
-                <option value="severe">Severe — slow &amp; simple</option>
-              </select>
-            </label>
-            <label class="field span-2">
-              <span>Default speed — <output id="speed-label">30%</output></span>
-              <input type="range" id="speed-pct" min="15" max="45" step="1" />
-            </label>
+            <ol class="wizard-steps" id="wizard-steps">
+              <li class="step active" data-step="1">Describe</li>
+              <li class="step" data-step="2">Show</li>
+              <li class="step" data-step="3">Save</li>
+            </ol>
+
+            <div class="studio-step" id="step-describe">
+              <textarea id="gesture-describe" rows="3" placeholder="When I make a fist, close the claw — or say “robot” then speak at your computer"></textarea>
+              <div class="studio-actions">
+                <button type="button" class="btn btn-ghost hidden" id="btn-voice-describe" hidden>Speak</button>
+                <button type="button" class="btn btn-primary" id="btn-interpret">Understand</button>
+              </div>
+            </div>
+
+            <div id="interpret-result" class="interpret-box hidden"></div>
+
+            <div class="studio-step hidden" id="step-capture">
+              <div class="camera-panel" id="camera-panel">
+                <img
+                  id="camera-preview"
+                  class="camera-preview hidden"
+                  alt="Live webcam preview for gesture teaching"
+                  width="960"
+                  height="540"
+                />
+                <div id="camera-placeholder" class="camera-placeholder">
+                  <p id="camera-hint">Starting camera…</p>
+                  <p class="camera-help">Grant <strong>Camera</strong> to Terminal or Cursor in System Settings → Privacy &amp; Security.</p>
+                </div>
+              </div>
+              <p id="capture-status">Show your gesture to the webcam.</p>
+              <div class="capture-bar"><i id="capture-fill"></i></div>
+              <div class="studio-actions">
+                <button type="button" class="btn btn-primary" id="btn-capture-start">Start capture</button>
+                <button type="button" class="btn btn-ghost hidden" id="btn-capture-stop">Finish</button>
+                <button type="button" class="btn btn-success hidden" id="btn-save-gesture">Save to catalogue</button>
+              </div>
+            </div>
+
+            <div class="catalogue">
+              <h3>Your catalogue <span id="catalogue-count" class="count-badge">0</span></h3>
+              <ul id="custom-catalogue" class="catalogue-list"></ul>
+            </div>
           </div>
 
-          <fieldset class="input-modes">
-            <legend>How you control the arm</legend>
-            <div class="mode-cards">
-              <label class="mode-card" id="mode-voice">
-                <input type="checkbox" id="enable-voice" />
-                <span class="mode-icon">🎙</span>
-                <span class="mode-title">Voice</span>
-                <span class="mode-desc">Plain English commands</span>
+          <div class="panel guide-card">
+            <header class="block-header">
+              <span class="block-kicker">Reference</span>
+              <h2>Built-in gestures</h2>
+              <p class="quit-note">Hold <strong>peace sign</strong> 1.5s to quit · <strong>OK sign</strong> or <strong>thumbs up</strong> = yes · <strong>Palm down</strong> = home</p>
+            </header>
+            <ul id="gesture-guide" class="guide-grid"></ul>
+          </div>
+        </section>
+
+        <!-- PROFILE -->
+        <section id="panel-profile" class="tab-panel page-view" role="tabpanel" aria-labelledby="tab-profile" hidden>
+          <form id="profile-form" class="panel profile-card profile-page">
+            <header class="block-header">
+              <span class="block-kicker">Your setup</span>
+              <h2>Profile &amp; comfort</h2>
+              <p>Saved on this device — changes apply to the running arm immediately.</p>
+            </header>
+            <fieldset class="input-modes preset-modes">
+              <legend>Comfort presets</legend>
+              <div class="preset-grid" id="preset-grid"></div>
+            </fieldset>
+            <div class="profile-grid">
+              <label class="field">
+                <span>Display name</span>
+                <input type="text" id="display-name" placeholder="e.g. Grandpa" autocomplete="name" />
               </label>
-              <label class="mode-card" id="mode-gesture">
-                <input type="checkbox" id="enable-gesture" />
-                <span class="mode-icon">✋</span>
-                <span class="mode-title">Gestures</span>
-                <span class="mode-desc">Hand signs &amp; studio</span>
+              <label class="field">
+                <span>Motor profile</span>
+                <select id="motor-level">
+                  <option value="early">Early — more speed &amp; gestures</option>
+                  <option value="moderate">Moderate — balanced</option>
+                  <option value="severe">Severe — slow &amp; simple</option>
+                </select>
               </label>
-              <label class="mode-card" id="mode-manual">
-                <input type="checkbox" id="enable-manual" />
-                <span class="mode-icon">🖐</span>
-                <span class="mode-title">Manual / web</span>
-                <span class="mode-desc">Buttons on this page</span>
+              <label class="field span-2">
+                <span>Default speed — <output id="speed-label">30%</output></span>
+                <input type="range" id="speed-pct" min="15" max="45" step="1" />
               </label>
             </div>
-          </fieldset>
 
-          <fieldset class="input-modes smart-toggles">
-            <legend>Smart assist</legend>
-            <label class="toggle"><input type="checkbox" id="fatigue-slowdown" /> Slow down after many moves</label>
-            <label class="toggle"><input type="checkbox" id="gentle-reach" /> Gentle reach confirmations</label>
-            <label class="toggle"><input type="checkbox" id="caregiver-mode" /> Caregiver mode</label>
-            <label class="field inline">
-              <span>Rest reminder every (min)</span>
-              <input type="number" id="rest-minutes" min="0" max="120" step="5" />
-            </label>
-          </fieldset>
+            <fieldset class="input-modes">
+              <legend>How you control the arm</legend>
+              <div class="mode-cards">
+                <label class="mode-card" id="mode-voice">
+                  <input type="checkbox" id="enable-voice" />
+                  <span class="mode-icon">🎙</span>
+                  <span class="mode-title">Voice</span>
+                  <span class="mode-desc">Plain English commands</span>
+                </label>
+                <label class="mode-card" id="mode-gesture">
+                  <input type="checkbox" id="enable-gesture" />
+                  <span class="mode-icon">✋</span>
+                  <span class="mode-title">Gestures</span>
+                  <span class="mode-desc">Hand signs &amp; studio</span>
+                </label>
+                <label class="mode-card" id="mode-manual">
+                  <input type="checkbox" id="enable-manual" />
+                  <span class="mode-icon">🖐</span>
+                  <span class="mode-title">Manual / web</span>
+                  <span class="mode-desc">Buttons on this page</span>
+                </label>
+              </div>
+            </fieldset>
 
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save profile</button>
-            <span id="profile-dirty" class="dirty-hint hidden">Unsaved changes</span>
-          </div>
-        </form>
-      </section>
+            <fieldset class="input-modes smart-toggles">
+              <legend>Smart assist</legend>
+              <label class="toggle"><input type="checkbox" id="fatigue-slowdown" /> Slow down after many moves</label>
+              <label class="toggle"><input type="checkbox" id="gentle-reach" /> Gentle reach confirmations</label>
+              <label class="toggle"><input type="checkbox" id="caregiver-mode" /> Caregiver mode</label>
+              <label class="field inline">
+                <span>Rest reminder every (min)</span>
+                <input type="number" id="rest-minutes" min="0" max="120" step="5" />
+              </label>
+            </fieldset>
 
-      <!-- HELP -->
-      <section id="panel-help" class="tab-panel" role="tabpanel" aria-labelledby="tab-help" hidden>
-        <div class="card help-intro-card" id="help-intro-card">
-          <div class="card-head row-head">
-            <div>
-              <h2 id="help-greeting">Your controls</h2>
-              <p id="help-sub">Cheat sheet tailored to your profile.</p>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save profile</button>
+              <span id="profile-dirty" class="dirty-hint hidden">Unsaved changes</span>
             </div>
-            <span id="help-lidar-badge" class="badge badge-off" title="TF-Luna range">LiDAR —</span>
-          </div>
-          <div id="help-active-chips" class="hero-chips help-chips" aria-label="Active input methods"></div>
-          <ul id="help-notes" class="help-notes"></ul>
-        </div>
-        <div id="help-sections" class="help-sections">
-          <p class="help-loading">Loading cheat sheet…</p>
-        </div>
-      </section>
-    </main>
+          </form>
+        </section>
 
-    <aside class="live-rail">
-      <section class="card smart-card">
-        <h2>Live assist</h2>
-        <div id="smart-panel" class="smart-panel"></div>
-        <div id="comfort-summary" class="comfort-summary"></div>
-        <div id="input-health" class="input-health"></div>
-        <p id="fallback-tip" class="fallback-tip"></p>
-      </section>
-      <section class="card arm-card">
-        <h2>Arm state</h2>
-        <div class="arm-meters">
-          <div class="meter"><span>Base</span><div class="bar"><i id="m-base"></i></div><em id="v-base">—</em></div>
-          <div class="meter"><span>Lift</span><div class="bar"><i id="m-lift"></i></div><em id="v-lift">—</em></div>
-          <div class="meter"><span>Rotate</span><div class="bar"><i id="m-rotate"></i></div><em id="v-rotate">—</em></div>
-          <div class="meter"><span>Claw</span><div class="bar"><i id="m-claw"></i></div><em id="v-claw">—</em></div>
+        <!-- HELP -->
+        <section id="panel-help" class="tab-panel page-view" role="tabpanel" aria-labelledby="tab-help" hidden>
+          <div class="panel help-intro-card" id="help-intro-card">
+            <header class="block-header row-head">
+              <div>
+                <span class="block-kicker">Cheat sheet</span>
+                <h2 id="help-greeting">Your controls</h2>
+                <p id="help-sub">Tailored to your profile — updates when you save.</p>
+              </div>
+              <span id="help-lidar-badge" class="badge badge-off" title="TF-Luna range">LiDAR —</span>
+            </header>
+            <div id="help-active-chips" class="hero-chips help-chips" aria-label="Active input methods"></div>
+            <ul id="help-notes" class="help-notes"></ul>
+          </div>
+          <div id="help-sections" class="help-sections"></div>
+        </section>
+      </main>
+
+      <aside class="live-rail status-dock" aria-label="Live status">
+        <div class="rail-shell">
+        <div class="widget smart-card">
+          <h2 class="widget-title">Live assist</h2>
+          <div id="smart-panel" class="smart-panel"></div>
+          <div id="comfort-summary" class="comfort-summary"></div>
+          <div id="input-health" class="input-health"></div>
+          <p id="fallback-tip" class="fallback-tip"></p>
         </div>
-        <p class="range-line">Range <strong id="v-range">—</strong> mm</p>
-      </section>
-      <section class="card activity-card">
-        <h2>Activity</h2>
-        <ul id="activity-feed" class="activity-feed"></ul>
-      </section>
-    </aside>
+        <div class="widget arm-card">
+          <h2 class="widget-title">Arm state</h2>
+          <div class="arm-meters">
+            <div class="meter"><span>Base</span><div class="bar"><i id="m-base"></i></div><em id="v-base">—</em></div>
+            <div class="meter"><span>Lift</span><div class="bar"><i id="m-lift"></i></div><em id="v-lift">—</em></div>
+            <div class="meter"><span>Rotate</span><div class="bar"><i id="m-rotate"></i></div><em id="v-rotate">—</em></div>
+            <div class="meter"><span>Claw</span><div class="bar"><i id="m-claw"></i></div><em id="v-claw">—</em></div>
+          </div>
+          <p class="range-line">Range <strong id="v-range">—</strong> mm</p>
+        </div>
+        <div class="widget activity-card">
+          <h2 class="widget-title">Activity</h2>
+          <ul id="activity-feed" class="activity-feed"></ul>
+        </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <div class="footer-brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <strong>Assistive Arm</strong>
+            <p>Research prototype — not a medical device.</p>
+          </div>
+        </div>
+        <nav class="footer-nav" aria-label="Footer">
+          <button type="button" class="footer-link" data-tab="control">Control</button>
+          <button type="button" class="footer-link" data-tab="gestures">Gestures</button>
+          <button type="button" class="footer-link" data-tab="profile">Profile</button>
+          <button type="button" class="footer-link" data-tab="help">Help</button>
+        </nav>
+        <p class="footer-safety">Hold <strong>peace sign</strong> to quit · Say <strong>stop</strong> anytime</p>
+      </div>
+    </footer>
   </div>
 
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
-
-  <footer class="footer">
-    <p>Research prototype — not a medical device · Hold <strong>peace sign</strong> to quit · Say <strong>stop</strong> anytime</p>
-  </footer>
-  <script src="/static/js/app.js?v=20260609" type="module"></script>
+  <script src="/static/js/app.js?v=20260615" type="module"></script>
 </body>
 </html>

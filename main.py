@@ -54,9 +54,11 @@ def build_runtime_config(args: argparse.Namespace) -> tuple[RuntimeConfig, objec
     gesture_preview = config.gesture_show_preview and not bool(getattr(args, "no_gesture_preview", False))
     web_mode = bool(getattr(args, "web", False))
     show_cam = config.show_camera_windows and not bool(getattr(args, "no_camera_preview", False))
-    if web_mode and not bool(getattr(args, "no_camera_preview", False)):
-        # Browser console shows the feed; skip a second OpenCV window unless requested.
-        show_cam = False
+    if web_mode:
+        # Web console replaces the legacy Tk "CREATE-TKS" desktop panel.
+        features = replace(features, enable_control_panel=False)
+        if not bool(getattr(args, "no_camera_preview", False)):
+            show_cam = False
     auto_sim = config.auto_simulate_on_serial_fail
     if bool(getattr(args, "no_auto_simulate", False)):
         auto_sim = False
@@ -79,6 +81,16 @@ def build_runtime_config(args: argparse.Namespace) -> tuple[RuntimeConfig, objec
     return tuned, profile
 
 
+async def _open_browser_when_ready(url: str, delay_s: float = 1.4) -> None:
+    import webbrowser
+
+    await asyncio.sleep(delay_s)
+    try:
+        webbrowser.open(url, new=1, autoraise=True)
+    except OSError:
+        logging.getLogger(__name__).info("Open your browser manually: %s", url)
+
+
 async def async_main(args: argparse.Namespace) -> int:
     config, profile = build_runtime_config(args)
     app = AdaptiveRobotArmApp(config, user_profile=profile)
@@ -89,16 +101,23 @@ async def async_main(args: argparse.Namespace) -> int:
         set_robot_app(app, config.memory_db_path)
         host = args.web_host
         port = args.web_port
+        url = f"http://{host}:{port}/"
         logging.getLogger(__name__).info(
-            "Web console at http://%s:%s — profile, voice/gesture/manual toggles, live arm status",
-            host,
-            port,
+            "Web console at %s — use the browser UI (Tk desktop panel is disabled in --web mode)",
+            url,
         )
+        if not getattr(args, "no_open_browser", False):
+            asyncio.create_task(_open_browser_when_ready(url))
         await asyncio.gather(
             app.run(duration=args.duration),
             run_uvicorn(host=host, port=port),
         )
     else:
+        if config.features.enable_control_panel:
+            logging.getLogger(__name__).warning(
+                "Legacy Tk desktop panel is opening. For the modern web UI, restart with: "
+                "python main.py --web"
+            )
         await app.run(duration=args.duration)
     return 0
 
@@ -179,6 +198,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=8787,
         help="Port for the web console when --web is set (default: 8787).",
+    )
+    parser.add_argument(
+        "--no-open-browser",
+        action="store_true",
+        help="Do not auto-open the browser when --web is set.",
     )
     parser.add_argument(
         "--web-host",

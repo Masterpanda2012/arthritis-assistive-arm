@@ -91,6 +91,9 @@ class VoiceLog:
     payload: dict = field(default_factory=dict)
     status: str = ""           # free-form, e.g. "resolved", "ignored", "ambiguous"
     updated_at: float = 0.0
+    mic_mode: str = "off"      # off | listening | unavailable | disabled
+    mic_device: str = ""
+    mic_error: str = ""
 
     def set_partial(self, text: str) -> None:
         self.partial = text
@@ -108,6 +111,11 @@ class VoiceLog:
         self.status = status
         self.updated_at = time.monotonic()
 
+    def set_mic(self, mode: str, *, device: str = "", error: str = "") -> None:
+        self.mic_mode = mode
+        self.mic_device = device
+        self.mic_error = error
+
     def snapshot(self) -> dict:
         return {
             "partial": self.partial,
@@ -117,6 +125,11 @@ class VoiceLog:
             "payload": self.payload,
             "status": self.status,
             "age": round(time.monotonic() - self.updated_at, 2) if self.updated_at else -1.0,
+            "mic": {
+                "mode": self.mic_mode,
+                "device": self.mic_device,
+                "error": self.mic_error,
+            },
         }
 
 
@@ -317,8 +330,11 @@ class AdaptiveRobotArmApp:
             return bool(profile.enable_voice_input)
         if src == "gesture":
             return bool(profile.enable_gesture_input)
-        if src in {"panel", "typed", "web"}:
+        if src in {"panel", "typed"}:
             return bool(profile.enable_manual_input)
+        if src == "web":
+            # Web console: typed/sent commands need manual OR voice enabled.
+            return bool(profile.enable_manual_input or profile.enable_voice_input)
         return True
 
     def apply_user_profile(self, profile: Any, *, persist: bool = True) -> None:
@@ -791,8 +807,17 @@ class AdaptiveRobotArmApp:
                 queue_depth=self.action_queue.qsize() + 1,
             )
             if not self.is_source_enabled(action.source or "system"):
-                LOGGER.debug("Ignored %s (input channel disabled in profile).", action.source)
+                LOGGER.info(
+                    "Ignored %s %s (input channel disabled in profile).",
+                    action.source,
+                    action.intent,
+                )
                 self.session_tracker.observe_status("disabled", action=action)
+                if action.intent == "spoken_text":
+                    text = str(action.payload.get("text", "")).strip()
+                    if text:
+                        self.voice_log.set_heard(text, source="typed")
+                        self.voice_log.set_intent("", status="disabled in profile")
                 continue
             LOGGER.info("INPUT %s", self._format_action(action))
             # Freshness tracking — used by the panel's traffic-lights.
@@ -1088,7 +1113,7 @@ class AdaptiveRobotArmApp:
             if not text:
                 return None
             # Make sure the control panel sees typed-text commands too.
-            if action.source == "panel":
+            if action.source in {"panel", "web"}:
                 self.voice_log.set_heard(text, source="typed")
             resolved = await self.llm_agent.interpret_text(text, source=action.source)
             if resolved is None:

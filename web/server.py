@@ -135,6 +135,10 @@ def create_app() -> FastAPI:
         profile = _load_profile()
         if not profile.enable_voice_input and not profile.enable_manual_input:
             raise HTTPException(403, "Voice and web commands disabled in profile")
+        if not _robot_app.is_source_enabled("web"):
+            raise HTTPException(403, "Voice and web commands disabled in profile")
+        _robot_app.voice_log.set_heard(text, source="typed")
+        _robot_app.voice_log.set_intent("", status="interpreting…")
         action = ActionRequest(
             source="web",
             intent="spoken_text",

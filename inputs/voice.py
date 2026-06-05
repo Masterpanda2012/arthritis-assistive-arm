@@ -38,6 +38,16 @@ except ImportError:  # pragma: no cover
 LOGGER = logging.getLogger(__name__)
 
 
+def _default_input_device_label() -> str:
+    if sd is None:
+        return ""
+    try:
+        info = sd.query_devices(sd.default.device[0])
+        return str(info.get("name", "")).strip()
+    except Exception:
+        return ""
+
+
 # Wake words drop the recognizer into an open-vocabulary active-listen
 # window so the user can say arbitrary teach/phrase commands. "robot"
 # is the primary trigger because it acoustically stands apart from the
@@ -267,17 +277,39 @@ async def voice_loop(
     lip_activity: LipActivity | None = None,
     enabled_fn: Callable[[], bool] | None = None,
 ) -> None:
-    if Model is None or KaldiRecognizer is None or sd is None or not config.vosk_model_path.exists():
-        LOGGER.warning(
-            "Vosk voice stack is unavailable. Falling back to typed text commands in the terminal."
+    if Model is None or KaldiRecognizer is None or sd is None:
+        detail = "Install vosk and sounddevice (pip install vosk sounddevice)."
+        LOGGER.warning("Vosk voice stack is unavailable. %s", detail)
+        if voice_log is not None:
+            voice_log.set_mic("unavailable", error=detail)
+        await _idle_voice_loop(stop_event, voice_log=voice_log)
+        return
+
+    if not config.vosk_model_path.exists():
+        detail = (
+            f"Speech model missing at {config.vosk_model_path}. "
+            "Run ./setup.sh or download vosk-model-small-en-us-0.15."
         )
-        await _text_command_loop(action_queue, stop_event, voice_log=voice_log)
+        LOGGER.warning("%s", detail)
+        if voice_log is not None:
+            voice_log.set_mic("unavailable", error=detail)
+        await _idle_voice_loop(stop_event, voice_log=voice_log)
         return
 
     await _vosk_loop(
         config, action_queue, stop_event,
         voice_log=voice_log, lip_activity=lip_activity, enabled_fn=enabled_fn,
     )
+
+
+async def _idle_voice_loop(
+    stop_event: asyncio.Event,
+    *,
+    voice_log: Any = None,
+) -> None:
+    """Keep the voice task alive when hardware/model mic input is unavailable."""
+    while not stop_event.is_set():
+        await asyncio.sleep(0.5)
 
 
 async def _text_command_loop(
@@ -390,9 +422,19 @@ async def _vosk_loop(
             callback=on_audio,
         )
     except Exception as exc:
-        LOGGER.warning("Unable to start Vosk microphone input (%s). Falling back to text mode.", exc)
-        await _text_command_loop(action_queue, stop_event)
+        detail = (
+            f"Could not open system microphone ({exc}). "
+            "Grant Microphone access to Terminal/Python in System Settings → Privacy."
+        )
+        LOGGER.warning("%s", detail)
+        if voice_log is not None:
+            voice_log.set_mic("unavailable", error=detail)
+        await _idle_voice_loop(stop_event, voice_log=voice_log)
         return
+
+    device_label = _default_input_device_label()
+    if voice_log is not None:
+        voice_log.set_mic("listening", device=device_label)
 
     wake_list = "/".join(WAKE_WORDS)
     LOGGER.info(
@@ -457,8 +499,12 @@ async def _vosk_loop(
     with stream:  # pragma: no branch
         while not stop_event.is_set():
             if enabled_fn is not None and not enabled_fn():
+                if voice_log is not None and voice_log.mic_mode == "listening":
+                    voice_log.set_mic("disabled", device=device_label)
                 await asyncio.sleep(0.2)
                 continue
+            if voice_log is not None and voice_log.mic_mode == "disabled":
+                voice_log.set_mic("listening", device=device_label)
             try:
                 data = await asyncio.wait_for(audio_queue.get(), timeout=0.5)
             except asyncio.TimeoutError:
