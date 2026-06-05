@@ -7,10 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/app.css?v=20260606" />
+  <link rel="stylesheet" href="/static/css/app.css?v=20260607" />
 </head>
-<body>
-  <div class="bg-glow"></div>
+<body class="app-loaded">
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-orbs" aria-hidden="true">
+    <span class="orb orb-teal"></span>
+    <span class="orb orb-violet"></span>
+    <span class="orb orb-amber"></span>
+  </div>
 
   <header class="app-header">
     <div class="brand">
@@ -39,6 +44,7 @@
   <div id="alert-banner" class="alert-banner hidden" role="alert"></div>
 
   <nav class="tab-nav" aria-label="Main sections" role="tablist">
+    <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
     <button type="button" class="tab active" id="tab-control" data-tab="control" role="tab" aria-controls="panel-control" aria-selected="true">Control</button>
     <button type="button" class="tab" id="tab-gestures" data-tab="gestures" role="tab" aria-controls="panel-gestures" aria-selected="false">Gestures</button>
     <button type="button" class="tab" id="tab-profile" data-tab="profile" role="tab" aria-controls="panel-profile" aria-selected="false">Profile</button>
@@ -268,6 +274,6 @@
   <footer class="footer">
     <p>Research prototype — not a medical device · Hold <strong>peace sign</strong> to quit · Say <strong>stop</strong> anytime</p>
   </footer>
-  <script src="/static/js/app.js?v=20260606" type="module"></script>
+  <script src="/static/js/app.js?v=20260607" type="module"></script>
 </body>
 </html>
