@@ -74,6 +74,11 @@ def create_app() -> FastAPI:
     async def health() -> dict:
         return {"ok": True, "robot_connected": _robot_app is not None}
 
+    @api.get("/api/live")
+    async def live_snapshot() -> dict:
+        """HTTP snapshot for Vercel and other hosts without WebSocket support."""
+        return _live_payload()
+
     @api.get("/api/camera/status")
     async def camera_status() -> dict:
         return _camera_payload()

@@ -21,6 +21,8 @@ except ImportError:  # pragma: no cover
 
 LOGGER = logging.getLogger(__name__)
 
+_RECONNECT_INTERVAL_S = 3.0
+
 
 class SerialBridge:
     def __init__(self, config: RuntimeConfig, state_queue: asyncio.Queue[ArmState]) -> None:
@@ -28,6 +30,7 @@ class SerialBridge:
         self.state_queue = state_queue
         self._serial = None
         self._reader_task: asyncio.Task[None] | None = None
+        self._reconnect_task: asyncio.Task[None] | None = None
         self._write_lock = asyncio.Lock()
         self._last_send = 0.0
         self._last_error = ""
@@ -96,24 +99,40 @@ class SerialBridge:
                     candidates.append(path)
         return candidates
 
-    async def start(self) -> None:
-        self._closed = False
-        if self._simulate:
-            self._mode = "simulation"
-            reason = "explicit --simulation flag" if self.config.features.simulate_serial else "pyserial is unavailable"
-            LOGGER.warning("Serial bridge running in simulation mode (%s).", reason)
-            self._record_monitor("SIM", f"simulation mode enabled ({reason})", level="warn")
-            await self._push_state(self._sim_state)
-            return
+    def _should_reconnect(self) -> bool:
+        return not self._closed and not self._simulate and self._mode == "disconnected"
 
+    def _maybe_start_reconnect(self) -> None:
+        if not self._should_reconnect():
+            return
+        if self._reconnect_task is not None and not self._reconnect_task.done():
+            return
+        self._reconnect_task = asyncio.create_task(self._reconnect_loop(), name="serial-reconnect")
+
+    async def _reconnect_loop(self) -> None:
+        while self._should_reconnect():
+            await asyncio.sleep(_RECONNECT_INTERVAL_S)
+            if not self._should_reconnect():
+                return
+            LOGGER.info("Retrying Arduino serial connection...")
+            self._record_monitor("SYS", "retrying serial connection", level="warn")
+            if await self._try_connect_live():
+                init_ok = await self.send_init()
+                LOGGER.info(
+                    "Serial reconnected on %s; INIT %s.",
+                    self._port_path,
+                    "ok" if init_ok else "failed",
+                )
+                return
+
+    async def _try_connect_live(self) -> bool:
         candidates = self._candidate_ports()
         if not candidates:
             LOGGER.error(
                 "No serial candidates found. Connect the Arduino and check the configured port %s.",
                 self.config.serial.port,
             )
-            self._mode = "disconnected"
-            return
+            return False
 
         LOGGER.info("Serial candidates: %s", ", ".join(candidates))
         last_error: Exception | None = None
@@ -137,7 +156,7 @@ class SerialBridge:
                 self._mode = "live"
                 self._record_monitor("SYS", f"connected on {port}", level="ok")
                 LOGGER.info("Serial bridge connected on %s with live firmware handshake.", port)
-                return
+                return True
             except Exception as exc:
                 last_error = exc
                 LOGGER.warning("Unable to open serial port %s (%s).", port, exc)
@@ -153,11 +172,28 @@ class SerialBridge:
                     self._reader_task = None
                 self._state_seen_event = None
 
+        self._last_error = str(last_error) if last_error else ""
+        return False
+
+    async def start(self) -> None:
+        self._closed = False
+        if self._simulate:
+            self._mode = "simulation"
+            reason = "explicit --simulation flag" if self.config.features.simulate_serial else "pyserial is unavailable"
+            LOGGER.warning("Serial bridge running in simulation mode (%s).", reason)
+            self._record_monitor("SIM", f"simulation mode enabled ({reason})", level="warn")
+            await self._push_state(self._sim_state)
+            return
+
+        if await self._try_connect_live():
+            return
+
+        candidates = self._candidate_ports()
         self._mode = "disconnected"
         LOGGER.error(
             "Serial bridge is disconnected. Tried: %s. Last error: %s",
-            ", ".join(candidates),
-            last_error,
+            ", ".join(candidates) if candidates else self.config.serial.port,
+            self._last_error,
         )
         if getattr(self.config, "auto_simulate_on_serial_fail", True):
             self._simulate = True
@@ -174,9 +210,15 @@ class SerialBridge:
                 "Use --no-auto-simulate or ROBOT_ARM_AUTO_SIMULATE=0 to require real hardware."
             )
             await self._push_state(self._sim_state)
+        else:
+            self._maybe_start_reconnect()
 
     async def close(self) -> None:
         self._closed = True
+        if self._reconnect_task is not None:
+            self._reconnect_task.cancel()
+            await asyncio.gather(self._reconnect_task, return_exceptions=True)
+            self._reconnect_task = None
         if self._reader_task is not None:
             self._reader_task.cancel()
             await asyncio.gather(self._reader_task, return_exceptions=True)
@@ -303,6 +345,7 @@ class SerialBridge:
                     LOGGER.error("Serial write failed: %s", exc)
                     self._record_monitor("ERR", f"write failed: {exc}", level="bad")
                     self._mode = "disconnected"
+                    self._maybe_start_reconnect()
                     return False
 
             if future is None:
@@ -385,6 +428,7 @@ class SerialBridge:
                         await asyncio.to_thread(broken_serial.close)
                     except Exception:
                         pass
+                self._maybe_start_reconnect()
                 break
 
             if not packet:

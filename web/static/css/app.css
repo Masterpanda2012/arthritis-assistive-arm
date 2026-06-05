@@ -527,6 +527,27 @@ body.app-ready .hero-lead {
 
 .hosted-banner.hidden { display: none; }
 
+.arm-banner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0.7rem var(--page-pad);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.84rem;
+  color: var(--coral-bright, #f0a08a);
+  background: rgba(240, 120, 90, 0.12);
+  border-bottom: 1px solid rgba(240, 120, 90, 0.28);
+}
+
+.arm-banner strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.arm-banner.hidden { display: none; }
+
 /* ---- Nav tabs (website style) ---- */
 .tab {
   font: inherit;

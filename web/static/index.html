@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/app.css?v=20260617" />
+  <link rel="stylesheet" href="/static/css/app.css?v=20260619" />
 </head>
 <body class="app-loaded">
   <div class="bg-grid" aria-hidden="true"></div>
@@ -71,8 +71,12 @@
     </header>
 
     <div id="hosted-banner" class="hosted-banner hidden" role="status">
-      <strong>Preview mode</strong>
-      <span>UI only — connect the arm locally with <code>python main.py --web</code>.</span>
+      <strong>Vercel preview</strong>
+      <span>Demo UI only — Vercel cannot run the robot or system mic. Control the arm locally with <code>python main.py --web</code>.</span>
+    </div>
+    <div id="arm-banner" class="arm-banner hidden" role="status">
+      <strong>Arm not connected</strong>
+      <span id="arm-banner-text">Plug in the Arduino USB cable — the app will retry automatically.</span>
     </div>
     <div id="alert-banner" class="alert-banner hidden" role="alert"></div>
 
@@ -352,6 +356,6 @@
   </div>
 
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
-  <script src="/static/js/app.js?v=20260617" type="module"></script>
+  <script src="/static/js/app.js?v=20260619" type="module"></script>
 </body>
 </html>

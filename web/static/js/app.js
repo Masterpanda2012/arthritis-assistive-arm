@@ -1408,10 +1408,41 @@ function setHostedBanner(show) {
   banner.classList.toggle("hidden", !show);
 }
 
+function setArmBanner(show, text = "") {
+  const banner = $("arm-banner");
+  const copy = $("arm-banner-text");
+  if (!banner) return;
+  banner.classList.toggle("hidden", !show);
+  if (show && copy && text) copy.textContent = text;
+}
+
+function applySerialPill(serial = {}) {
+  const pill = $("serial-pill");
+  if (!pill) return;
+  const mode = serial.mode || "?";
+  if (mode === "live") {
+    pill.textContent = "Arm connected";
+    pill.className = "pill pill-ok";
+  } else if (mode === "simulation") {
+    pill.textContent = "Simulation";
+    pill.className = "pill pill-warn";
+  } else if (mode === "disconnected") {
+    pill.textContent = "Arm disconnected";
+    pill.className = "pill pill-off";
+  } else if (mode === "offline") {
+    pill.textContent = "Arm offline";
+    pill.className = "pill pill-off";
+  } else {
+    pill.textContent = mode;
+    pill.className = "pill pill-warn";
+  }
+}
+
 function applyLivePayload(msg) {
   if (msg.type === "error") {
     $("live-pill").textContent = "Robot offline";
     $("live-pill").className = "pill pill-off";
+    setArmBanner(false);
     return;
   }
   if (msg.type !== "status") return;
@@ -1419,10 +1450,23 @@ function applyLivePayload(msg) {
   if (msg.hosted_preview) {
     state.hostedPreview = true;
     setHostedBanner(true);
+    setArmBanner(false);
     $("live-pill").textContent = "Preview";
     $("live-pill").className = "pill pill-warn";
-    $("serial-pill").textContent = "Arm offline";
-    $("serial-pill").className = "pill pill-off";
+    applySerialPill({ mode: "offline" });
+  } else {
+    state.hostedPreview = false;
+    setHostedBanner(false);
+    const serial = msg.serial || {};
+    if (serial.mode === "disconnected") {
+      const port = serial.port ? ` (${serial.port})` : "";
+      setArmBanner(
+        true,
+        `Plug in the Arduino USB cable${port} — retrying every few seconds. Or restart without --no-auto-simulate for simulation mode.`,
+      );
+    } else {
+      setArmBanner(false);
+    }
   }
 
   state.arm = msg.arm || {};
@@ -1449,36 +1493,96 @@ function applyLivePayload(msg) {
     applyInputModes({ ...state.profile, ...msg.profile_summary });
   }
 
-  const serial = msg.serial || {};
-  $("serial-pill").textContent = serial.mode === "live" ? "Arm connected" : `Sim · ${serial.mode || "?"}`;
-  $("serial-pill").className = serial.mode === "live" ? "pill pill-ok" : "pill pill-warn";
+  applySerialPill(msg.serial || {});
 
   if (state.helpPayload) {
     const lidar = {
       valid: (msg.arm?.range_mm ?? -1) > 0,
       range_mm: msg.arm?.range_mm > 0 ? msg.arm.range_mm : null,
     };
-    updateHelpLidarBadge(lidar, serial.mode);
+    updateHelpLidarBadge(lidar, msg.serial?.mode);
   }
 }
 
-function connectLive() {
+let livePollTimer = null;
+let liveWs = null;
+
+async function pollLiveOnce() {
+  const live = $("live-pill");
+  const res = await fetch("/api/live");
+  if (!res.ok) throw new Error("live unavailable");
+  const msg = await res.json();
+  applyLivePayload(msg);
+  live.textContent = msg.hosted_preview ? "Preview" : "Live";
+  live.className = msg.hosted_preview ? "pill pill-warn" : "pill pill-ok";
+}
+
+function startLivePolling() {
+  if (livePollTimer) return;
+  pollLiveOnce().catch(() => {
+    $("live-pill").textContent = "Offline";
+    $("live-pill").className = "pill pill-off";
+  });
+  livePollTimer = setInterval(() => {
+    pollLiveOnce().catch(() => {
+      $("live-pill").textContent = "Offline";
+      $("live-pill").className = "pill pill-off";
+    });
+  }, 400);
+}
+
+function startLiveWebSocket() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   const ws = new WebSocket(`${proto}://${location.host}/ws/live`);
+  liveWs = ws;
   const live = $("live-pill");
+  let opened = false;
 
   ws.onopen = () => {
+    opened = true;
     live.textContent = "Live";
     live.className = "pill pill-ok";
   };
+  ws.onerror = () => {
+    if (!opened) startLivePolling();
+  };
   ws.onclose = () => {
+    liveWs = null;
+    if (!opened) {
+      startLivePolling();
+      return;
+    }
     live.textContent = "Reconnecting…";
     live.className = "pill pill-warn";
-    setTimeout(connectLive, 2000);
+    setTimeout(startLiveWebSocket, 2000);
   };
   ws.onmessage = (ev) => {
-    applyLivePayload(JSON.parse(ev.data));
+    try {
+      applyLivePayload(JSON.parse(ev.data));
+    } catch {
+      live.textContent = "Bad data";
+      live.className = "pill pill-off";
+    }
   };
+}
+
+async function connectLive() {
+  const live = $("live-pill");
+  live.textContent = "Connecting…";
+  live.className = "pill pill-muted";
+
+  try {
+    const health = await fetch("/api/health").then((r) => r.json());
+    if (!health.robot_connected) {
+      startLivePolling();
+      return;
+    }
+  } catch {
+    startLivePolling();
+    return;
+  }
+
+  startLiveWebSocket();
 }
 
 async function init() {
