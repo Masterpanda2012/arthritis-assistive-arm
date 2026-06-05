@@ -64,7 +64,8 @@
   --dur-fast: 0.15s;
   --dur-med: 0.28s;
   --page-pad: clamp(1rem, 3vw, 1.5rem);
-  --content-max: 1280px;
+  --content-max: 1240px;
+  --section-gap: clamp(1rem, 2vw, 1.35rem);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -169,9 +170,23 @@ body.app-ready, body.app-loaded { opacity: 1; }
   max-width: var(--content-max);
   margin: 0 auto;
   padding: 0.75rem var(--page-pad);
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: clamp(0.75rem, 2vw, 1.5rem);
+  gap: 0.75rem 1.25rem;
+}
+
+@media (max-width: 720px) {
+  .site-nav-inner {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo status"
+      "tabs tabs";
+  }
+
+  .site-logo { grid-area: logo; }
+  .site-nav-links { grid-area: tabs; }
+  .site-nav-status { grid-area: status; }
 }
 
 .site-logo {
@@ -219,21 +234,6 @@ body.app-ready, body.app-loaded { opacity: 1; }
   justify-content: flex-end;
 }
 
-@media (max-width: 720px) {
-  .site-nav-inner {
-    flex-wrap: wrap;
-  }
-
-  .site-nav-links {
-    order: 3;
-    width: 100%;
-    padding-bottom: 0.15rem;
-  }
-
-  .site-nav-status {
-    margin-left: auto;
-  }
-}
 
 .tagline { color: var(--muted); font-size: 0.88rem; }
 
@@ -299,15 +299,19 @@ body.app-ready, body.app-loaded { opacity: 1; }
 
 .hero-split {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 400px);
-  gap: clamp(1.5rem, 4vw, 3rem);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: center;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .hero-split {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .hero-aside {
+    max-width: 100%;
   }
 }
 
@@ -552,6 +556,35 @@ body.app-ready .rail-shell {
 
 .alert-banner.hidden { display: none; }
 
+.hosted-banner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0.7rem var(--page-pad);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.84rem;
+  color: var(--blue-bright);
+  background: var(--blue-soft);
+  border-bottom: 1px solid rgba(94, 176, 232, 0.28);
+}
+
+.hosted-banner strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hosted-banner code {
+  font-size: 0.78rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--sage);
+}
+
+.hosted-banner.hidden { display: none; }
+
 /* ---- Nav tabs (website style) ---- */
 .tab {
   font: inherit;
@@ -604,20 +637,37 @@ body.app-ready .rail-shell {
   .site-body,
   .app-shell {
     grid-template-columns: 1fr;
+    gap: var(--section-gap);
   }
 
-  .status-dock,
   .live-rail {
+    order: -1;
+  }
+
+  .rail-shell {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .rail-shell .widget {
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+
+  .rail-shell .widget:last-child {
+    border-right: none;
   }
 }
 
-@media (max-width: 640px) {
-  .status-dock,
-  .live-rail {
+@media (max-width: 760px) {
+  .rail-shell {
     grid-template-columns: 1fr;
+  }
+
+  .rail-shell .widget {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
 }
 
@@ -628,7 +678,7 @@ body.app-ready .rail-shell {
 .tab-panel,
 .page-view {
   display: none;
-  gap: clamp(1rem, 2vw, 1.25rem);
+  gap: var(--section-gap);
 }
 
 .tab-panel.active,
@@ -639,10 +689,14 @@ body.app-ready .rail-shell {
   animation: fadeUp 0.35s var(--ease-out);
 }
 
-#panel-control.panel-animate .tasks-card { animation: slideInLeft 0.55s var(--ease-out) 0.04s both; }
-#panel-control.panel-animate .motion-card { animation: slideInLeft 0.55s var(--ease-out) 0.1s both; }
-#panel-control.panel-animate .radar-card { animation: slideInRight 0.55s var(--ease-out) 0.06s both; }
-#panel-control.panel-animate .voice-card { animation: fadeUp 0.5s var(--ease-out) 0.14s both; }
+#panel-control.panel-animate > .panel {
+  animation: fadeUp 0.4s var(--ease-out) both;
+}
+
+#panel-control.panel-animate > .tasks-card { animation-delay: 0.03s; }
+#panel-control.panel-animate > .motion-card { animation-delay: 0.06s; }
+#panel-control.panel-animate > .radar-card { animation-delay: 0.05s; }
+#panel-control.panel-animate > .voice-card { animation-delay: 0.09s; }
 
 #panel-gestures.panel-animate .studio-card { animation: slideInLeft 0.55s var(--ease-out) 0.04s both; }
 #panel-gestures.panel-animate .guide-card { animation: slideInRight 0.55s var(--ease-out) 0.1s both; }
@@ -656,41 +710,32 @@ body.app-ready .rail-shell {
 /* Control dashboard bento */
 #panel-control.active {
   grid-template-columns: 1fr;
-  gap: 1.25rem;
 }
 
-.control-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-}
-
-.control-stack.disabled-overlay {
-  opacity: 0.55;
-  pointer-events: none;
-}
-
-@media (min-width: 960px) {
+@media (min-width: 900px) {
   #panel-control.active {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
-      "stack radar"
-      "voice radar";
-    align-items: stretch;
+      "tasks radar"
+      "motion radar"
+      "voice voice";
+    align-items: start;
   }
 
-  #panel-control .control-stack { grid-area: stack; }
+  #panel-control .tasks-card { grid-area: tasks; }
+  #panel-control .motion-card { grid-area: motion; }
   #panel-control .radar-card { grid-area: radar; }
   #panel-control .voice-card { grid-area: voice; }
 
   .radar-card {
-    min-height: 100%;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
   }
 
   .radar-container {
     flex: 1;
-    min-height: 280px;
+    min-height: 300px;
   }
 }
 
@@ -798,7 +843,6 @@ body.app-ready .rail-shell {
 .panel:hover {
   border-color: rgba(107, 158, 200, 0.22);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 
 .tasks-card {
@@ -883,7 +927,11 @@ body.app-ready .rail-shell {
   color: var(--muted);
   font-size: 0.875rem;
   line-height: 1.5;
-  max-width: 48ch;
+  max-width: 52ch;
+}
+
+.voice-card .block-header p {
+  max-width: none;
 }
 
 .card-head { margin-bottom: 0.9rem; }
@@ -952,8 +1000,7 @@ body.app-ready .rail-shell {
 }
 
 .card.disabled-overlay,
-.panel.disabled-overlay,
-.control-stack.disabled-overlay {
+.panel.disabled-overlay {
   opacity: 0.55;
   pointer-events: none;
 }

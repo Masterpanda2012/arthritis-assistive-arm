@@ -336,10 +336,72 @@ def _camera_payload() -> dict:
     }
 
 
+def _hosted_preview_payload() -> dict:
+    """Static telemetry for Vercel / offline deploys (no robot runtime)."""
+    profile = _load_profile()
+    return {
+        "type": "status",
+        "hosted_preview": True,
+        "camera": _camera_payload(),
+        "serial": {"mode": "offline", "port": ""},
+        "arm": {
+            "base": 90,
+            "lift": 90,
+            "rotate": 90,
+            "claw": 90,
+            "range_mm": -1,
+            "estop": False,
+            "age_s": -1,
+        },
+        "environment": [],
+        "activity": [
+            {
+                "source": "system",
+                "kind": "info",
+                "text": "Hosted preview — run python main.py --web on your computer to control the arm.",
+            }
+        ],
+        "pending": None,
+        "voice": {
+            "partial": "",
+            "heard": "",
+            "source": "",
+            "intent": "",
+            "payload": {},
+            "status": "",
+            "age": -1,
+            "mic": {
+                "mode": "unavailable",
+                "device": "",
+                "error": "System mic runs locally with main.py --web (not on hosted preview).",
+            },
+        },
+        "input_fallback": {},
+        "gesture_diversity": {"covered": [], "hint": ""},
+        "smart": {
+            "session_minutes": 0,
+            "command_count": 0,
+            "fatigue_slowdown": False,
+            "rest_reminder_due": False,
+            "caregiver_mode": profile.caregiver_mode,
+        },
+        "gesture_capture": {"active": False, "sample_count": 0, "meta": {}},
+        "vision_pipeline": {},
+        "profile_summary": {
+            "display_name": profile.display_name,
+            "motor_level": profile.motor_level.value,
+            "enable_voice_input": profile.enable_voice_input,
+            "enable_gesture_input": profile.enable_gesture_input,
+            "enable_manual_input": profile.enable_manual_input,
+            "rest_reminder_due": False,
+        },
+    }
+
+
 def _live_payload() -> dict:
     """Single snapshot for WebSocket and status API."""
     if _robot_app is None:
-        return {"type": "error", "message": "robot offline"}
+        return _hosted_preview_payload()
     state, age = _robot_app.current_state_snapshot()
     tel = _robot_app.telemetry_snapshot()
     profile = _load_profile()

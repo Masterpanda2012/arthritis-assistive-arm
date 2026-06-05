@@ -1,0 +1,10 @@
+.venv
+.playwright-cli
+**/__pycache__
+**/*.pyc
+models/
+calibration/
+Sketch_for_UNO/
+*.db
+.env
+.env.*

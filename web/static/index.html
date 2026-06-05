@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/app.css?v=20260615" />
+  <link rel="stylesheet" href="/static/css/app.css?v=20260616" />
 </head>
 <body class="app-loaded">
   <div class="bg-grid" aria-hidden="true"></div>
@@ -70,41 +70,43 @@
       </div>
     </header>
 
+    <div id="hosted-banner" class="hosted-banner hidden" role="status">
+      <strong>Preview mode</strong>
+      <span>UI only — connect the arm locally with <code>python main.py --web</code>.</span>
+    </div>
     <div id="alert-banner" class="alert-banner hidden" role="alert"></div>
 
     <div class="site-body app-shell">
       <main class="site-content tab-panels">
         <!-- CONTROL -->
         <section id="panel-control" class="tab-panel page-view active" role="tabpanel" aria-labelledby="tab-control">
-          <div class="control-stack" id="controls-card">
-            <div class="panel tasks-card">
-              <header class="block-header row-head">
-                <div>
-                  <span class="block-kicker">01 · Reach</span>
-                  <h2>Daily tasks</h2>
-                  <p>Large tap targets — every pick confirms before the arm moves.</p>
-                </div>
-                <span id="manual-badge" class="badge badge-ok">Manual on</span>
-              </header>
-              <p id="pending-banner" class="pending hidden"></p>
-              <p id="diversity-hint" class="diversity-hint"></p>
-              <div class="adl-grid" id="adl-grid"></div>
-              <p id="task-context" class="task-context">Choose a daily task to see the target and confirmation plan.</p>
-            </div>
+          <div class="panel tasks-card" id="tasks-card">
+            <header class="block-header row-head">
+              <div>
+                <span class="block-kicker">01 · Reach</span>
+                <h2>Daily tasks</h2>
+                <p>Large tap targets — every pick confirms before the arm moves.</p>
+              </div>
+              <span id="manual-badge" class="badge badge-ok">Manual on</span>
+            </header>
+            <p id="pending-banner" class="pending hidden"></p>
+            <p id="diversity-hint" class="diversity-hint"></p>
+            <div class="adl-grid" id="adl-grid"></div>
+            <p id="task-context" class="task-context">Choose a daily task to see the target and confirmation plan.</p>
+          </div>
 
-            <div class="panel motion-card">
-              <header class="block-header compact-head">
-                <span class="block-kicker">Fine motion</span>
-                <h2>Joint controls</h2>
-              </header>
-              <div class="motion-grid" id="motion-grid"></div>
-              <div class="safety-row">
-                <button type="button" class="btn btn-danger" id="btn-estop">Emergency stop</button>
-                <div class="confirm-row">
-                  <button type="button" class="btn btn-success" data-intent="confirm_yes">Yes</button>
-                  <button type="button" class="btn btn-ghost" data-intent="confirm_no">No</button>
-                  <button type="button" class="btn btn-ghost" data-intent="home">Home</button>
-                </div>
+          <div class="panel motion-card" id="motion-card">
+            <header class="block-header compact-head">
+              <span class="block-kicker">02 · Motion</span>
+              <h2>Joint controls</h2>
+            </header>
+            <div class="motion-grid" id="motion-grid"></div>
+            <div class="safety-row">
+              <button type="button" class="btn btn-danger" id="btn-estop">Emergency stop</button>
+              <div class="confirm-row">
+                <button type="button" class="btn btn-success" data-intent="confirm_yes">Yes</button>
+                <button type="button" class="btn btn-ghost" data-intent="confirm_no">No</button>
+                <button type="button" class="btn btn-ghost" data-intent="home">Home</button>
               </div>
             </div>
           </div>
@@ -112,7 +114,7 @@
           <div class="panel radar-card" id="radar-card">
             <header class="block-header row-head">
               <div>
-                <span class="block-kicker">02 · Workspace</span>
+                <span class="block-kicker">03 · Workspace</span>
                 <h2>Radar map</h2>
                 <p>Detected objects around the arm — click to command a reach.</p>
               </div>
@@ -128,7 +130,7 @@
 
           <div class="panel voice-card" id="voice-card">
             <header class="block-header">
-              <span class="block-kicker">03 · Voice</span>
+              <span class="block-kicker">04 · Voice</span>
               <h2>Say what you need</h2>
               <p>Speak to your computer — the app listens through your <strong>system microphone</strong> (Vosk). Type below if you prefer.</p>
             </header>
@@ -350,6 +352,6 @@
   </div>
 
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
-  <script src="/static/js/app.js?v=20260615" type="module"></script>
+  <script src="/static/js/app.js?v=20260616" type="module"></script>
 </body>
 </html>

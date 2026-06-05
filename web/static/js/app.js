@@ -117,6 +117,7 @@ const state = {
   helpLoaded: false,
   helpPayload: null,
   liveStats: { range: null, session: null },
+  hostedPreview: false,
 };
 
 function flashEl(el, cls = "value-flash") {
@@ -397,7 +398,9 @@ function applyInputModes(profile) {
   const gesture = profile.enable_gesture_input !== false;
   const manual = profile.enable_manual_input !== false;
 
-  $("controls-card").classList.toggle("disabled-overlay", !manual);
+  ["tasks-card", "motion-card"].forEach((id) => {
+    $(id)?.classList.toggle("disabled-overlay", !manual);
+  });
   $("manual-badge").textContent = manual ? "Manual on" : "Manual off";
   $("manual-badge").className = manual ? "badge badge-ok" : "badge badge-off";
 
@@ -514,6 +517,10 @@ function showTaskContext(item) {
 }
 
 async function sendCommand(intent, payload = {}, requiresConfirmation = false) {
+  if (state.hostedPreview) {
+    toast("Preview only — run main.py --web locally to move the arm", "err");
+    return;
+  }
   try {
     await api("/api/command", {
       method: "POST",
@@ -539,6 +546,10 @@ function setVoiceFeedback(message, kind = "") {
 async function sendSay(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
+  if (state.hostedPreview) {
+    setVoiceFeedback("Preview mode — voice runs on your computer with main.py --web.", "warn");
+    return;
+  }
   if (state.profile?.enable_voice_input === false && state.profile?.enable_manual_input === false) {
     setVoiceFeedback("Enable Voice or Manual / web in Profile first.", "error");
     toast("Voice and web commands are disabled in Profile", "err");
@@ -1378,6 +1389,12 @@ function drawRadarFrame() {
   }
 }
 
+function setHostedBanner(show) {
+  const banner = $("hosted-banner");
+  if (!banner) return;
+  banner.classList.toggle("hidden", !show);
+}
+
 function applyLivePayload(msg) {
   if (msg.type === "error") {
     $("live-pill").textContent = "Robot offline";
@@ -1385,6 +1402,15 @@ function applyLivePayload(msg) {
     return;
   }
   if (msg.type !== "status") return;
+
+  if (msg.hosted_preview) {
+    state.hostedPreview = true;
+    setHostedBanner(true);
+    $("live-pill").textContent = "Preview";
+    $("live-pill").className = "pill pill-warn";
+    $("serial-pill").textContent = "Arm offline";
+    $("serial-pill").className = "pill pill-off";
+  }
 
   state.arm = msg.arm || {};
   if (msg.environment) {
